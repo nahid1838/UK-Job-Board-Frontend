@@ -46,6 +46,9 @@ export function Navbar() {
       }
 
       closeMenu();
+      if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
+        window.location.replace("/");
+      }
     } catch {
       setSignOutError("Couldn’t sign out. Please try again.");
     } finally {
@@ -53,16 +56,21 @@ export function Navbar() {
     }
   }
 
-  const signOutButton = (
-    <Button
-      type="button"
-      variant="outline"
-      onClick={handleSignOut}
-      disabled={isSigningOut}
-      className="min-h-11 px-4"
-    >
-      {isSigningOut ? "Signing out…" : "Sign out"}
-    </Button>
+  const signedInActions = (
+    <>
+      <Link href="/dashboard" onClick={closeMenu} className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold hover:bg-slate-100 ${focusStyle}`}>
+        Dashboard
+      </Link>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleSignOut}
+        disabled={isSigningOut}
+        className="min-h-11 px-4"
+      >
+        {isSigningOut ? "Signing out…" : "Sign out"}
+      </Button>
+    </>
   );
 
   function closeMenu() {
@@ -151,7 +159,7 @@ export function Navbar() {
               <Search aria-hidden="true" className="size-[19px]" />
             </Link>
 
-            {session ? signOutButton : (
+            {session ? signedInActions : (
               <>
                 <Link
                   href="/login"
@@ -176,7 +184,7 @@ export function Navbar() {
 
           {/* Tablet Actions */}
           <div className="ml-auto hidden items-center gap-2 lg:flex xl:hidden">
-            {session ? signOutButton : (
+            {session ? signedInActions : (
               <>
                 <Link
                   href="/login"
@@ -259,7 +267,7 @@ export function Navbar() {
 
               {/* Mobile Auth Actions */}
               <div className="grid grid-cols-2 gap-3 border-t border-slate-100 py-4">
-                {session ? signOutButton : (
+                {session ? signedInActions : (
                   <>
                     <Link
                       href="/login"

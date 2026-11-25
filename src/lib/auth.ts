@@ -17,6 +17,25 @@ export const auth = betterAuth({
                     input: (value) => value === "employer" ? "employer" : "seeker",
                 },
             },
+            role: {
+                type: ["seeker", "employer", "admin"],
+                required: false,
+                input: false,
+            },
+        },
+    },
+    databaseHooks: {
+        user: {
+            create: {
+                async before(user) {
+                    return {
+                        data: {
+                            ...user,
+                            role: user.accountType === "employer" ? "employer" : "seeker",
+                        },
+                    };
+                },
+            },
         },
     },
     emailAndPassword: {

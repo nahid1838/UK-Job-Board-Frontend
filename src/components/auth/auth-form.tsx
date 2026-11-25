@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import { SocialProviderIcon } from "./social-provider-icon";
 
 const accountTypes = [
   { value: "seeker", label: "Job Seeker" },
@@ -41,7 +42,7 @@ const inputStyle = "mt-1.5 h-11 w-full rounded-lg border border-slate-300 bg-whi
 
 type AuthFormProps =
   | { mode: "login"; showSocialError: boolean }
-  | { mode: "register"; initialRole: "seeker" | "employer" };
+  | { mode: "register"; initialRole: "seeker" | "employer"; showSocialError: boolean };
 
 export function AuthForm(props: AuthFormProps) {
   const isRegister = props.mode === "register";
@@ -51,7 +52,7 @@ export function AuthForm(props: AuthFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingProvider, setPendingProvider] = useState<SocialProvider | null>(null);
   const [errorMessage, setErrorMessage] = useState(
-    props.mode === "login" && props.showSocialError
+    props.showSocialError
       ? "We couldn’t complete social sign-in. Please try again."
       : "",
   );
@@ -66,8 +67,8 @@ export function AuthForm(props: AuthFormProps) {
     try {
       const { data, error } = await authClient.signIn.social({
         provider,
-        callbackURL: "/",
-        errorCallbackURL: "/login?socialError=1",
+        callbackURL: "/dashboard",
+        errorCallbackURL: isRegister ? "/register?socialError=1" : "/login?socialError=1",
         disableRedirect: true,
       });
 
@@ -129,11 +130,11 @@ export function AuthForm(props: AuthFormProps) {
           id: "registration",
           description: isSignedIn ? "You’re signed in. Welcome to UK Job Board!" : "You can now sign in to UK Job Board.",
         });
-        router.replace(isSignedIn ? "/" : "/login");
+        router.replace(isSignedIn ? "/dashboard" : "/login");
         return;
       }
 
-      window.location.replace("/");
+      router.replace("/dashboard");
     } catch {
       const message = "We couldn’t reach the account service. Check your connection and try again.";
       if (isRegister) {
@@ -216,25 +217,32 @@ export function AuthForm(props: AuthFormProps) {
         </Button>
       </form>
 
-      {!isRegister && (
-        <div className="mt-5">
-          <p className="mb-3 text-center text-sm text-slate-600">Or continue with</p>
-          <div className="grid grid-cols-2 gap-3">
-            {socialProviders.map(({ value, label }) => (
-              <Button
-                key={value}
-                type="button"
-                variant="outline"
-                disabled={isBusy}
-                onClick={() => handleSocialSignIn(value)}
-                className="min-h-11"
-              >
-                {pendingProvider === value ? "Connecting…" : label}
-              </Button>
-            ))}
-          </div>
+      <div className="mt-6">
+        <p className="mb-3 flex items-center gap-3 text-sm text-slate-600 before:h-px before:flex-1 before:bg-slate-200 after:h-px after:flex-1 after:bg-slate-200">
+          Or continue with
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          {socialProviders.map(({ value, label }) => (
+            <Button
+              key={value}
+              type="button"
+              variant="outline"
+              aria-describedby={isRegister ? "social-account-note" : undefined}
+              disabled={isBusy}
+              onClick={() => handleSocialSignIn(value)}
+              className="min-h-12 w-full gap-2 rounded-xl border-slate-200 bg-white text-slate-800 shadow-sm hover:border-emerald-300 hover:bg-emerald-50/60 focus-visible:ring-emerald-600/40"
+            >
+              <SocialProviderIcon provider={value} />
+              {pendingProvider === value ? "Connecting…" : label}
+            </Button>
+          ))}
         </div>
-      )}
+        {isRegister && (
+          <p id="social-account-note" className="mt-3 text-center text-sm text-slate-600">
+            New accounts created with Google or GitHub start as Job Seekers.
+          </p>
+        )}
+      </div>
 
       {errorMessage && <p role="alert" className="mt-4 text-sm text-red-700">{errorMessage}</p>}
 
