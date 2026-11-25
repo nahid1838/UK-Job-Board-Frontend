@@ -2,6 +2,7 @@ import { Navbar } from "@/components/shared/navbar";
 import { dashboardPaths, getDashboardUser, type DashboardRole } from "@/lib/dashboard-access";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { BackendAccessCheck } from "./backend-access-check";
 
 const dashboardContent = {
   seeker: {
@@ -52,6 +53,7 @@ async function ProtectedDashboard({ requiredRole }: { requiredRole: DashboardRol
               </section>
             ))}
           </div>
+          {process.env.NODE_ENV === "development" && <BackendAccessCheck />}
         </div>
       </main>
     </>
