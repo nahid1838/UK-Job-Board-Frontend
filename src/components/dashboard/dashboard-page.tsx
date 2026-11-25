@@ -1,4 +1,5 @@
 ﻿import { BackendAccessCheck } from "./backend-access-check";
+import { AdminCompanyQueue, CompanyApplicationPanel } from "./company-applications";
 import { DashboardShell } from "./dashboard-shell";
 import { dashboardPaths, getDashboardUser, type DashboardRole } from "@/lib/dashboard-access";
 import { BriefcaseBusiness, Building2, ClipboardList, Clock3, FileCheck2, Users } from "lucide-react";
@@ -99,23 +100,13 @@ async function ProtectedDashboard({ requiredRole }: { requiredRole: DashboardRol
       </dl>
 
       {role !== "admin" && (
-        <section id="employer-access" className="mt-6 flex scroll-mt-6 items-start gap-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
-          <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-800">
-            <Building2 aria-hidden="true" className="size-5" />
-          </span>
-          <div>
-            <h2 className="font-bold text-emerald-950">{role === "seeker" ? "Become an Employer" : "Company profile"}</h2>
-            <p className="mt-1 text-sm leading-relaxed text-emerald-900">
-              {role === "seeker"
-                ? "The company application will let you request employer access using this account."
-                : "Admin approval is required before your company can publish jobs."}
-            </p>
-          </div>
-        </section>
+        <CompanyApplicationPanel title={role === "seeker" ? "Become an Employer" : "Company profile"} />
       )}
 
-      <div className={`mt-6 grid gap-4 ${role === "admin" ? "xl:grid-cols-2" : ""}`}>
-        <ActivityPanel id="activity" title={activityTitle} message={activityMessage} />
+      <div className="mt-6 grid gap-4">
+        {role === "admin" ? <AdminCompanyQueue /> : (
+          <ActivityPanel id="activity" title={activityTitle} message={activityMessage} />
+        )}
         {role === "admin" && (
           <ActivityPanel id="recent-applications" title="Recent job applications" message="Applications from job seekers will appear here." />
         )}
