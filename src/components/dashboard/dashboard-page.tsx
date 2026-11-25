@@ -1,10 +1,12 @@
 ﻿import { BackendAccessCheck } from "./backend-access-check";
 import { AdminCompanyQueue, CompanyApplicationPanel } from "./company-applications";
 import { DashboardShell } from "./dashboard-shell";
+import { JobApplicationsPanel } from "./job-applications-panel";
 import { dashboardPaths, getDashboardUser, type DashboardRole } from "@/lib/dashboard-access";
+import { dashboardHref, dashboardNavigation } from "@/lib/dashboard-navigation";
 import { BriefcaseBusiness, Building2, ClipboardList, Clock3, FileCheck2, Users } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
 
 const dashboardContent = {
   seeker: {
@@ -15,8 +17,6 @@ const dashboardContent = {
       { label: "In progress", Icon: Clock3 },
       { label: "Closed", Icon: FileCheck2 },
     ],
-    activityTitle: "Recent applications",
-    activityMessage: "Jobs you apply for will appear here.",
   },
   employer: {
     title: "Employer Dashboard",
@@ -26,8 +26,6 @@ const dashboardContent = {
       { label: "Applications", Icon: ClipboardList },
       { label: "Company status", Icon: Building2 },
     ],
-    activityTitle: "Recent jobs",
-    activityMessage: "Jobs you create for your company will appear here.",
   },
   admin: {
     title: "Admin Dashboard",
@@ -38,8 +36,6 @@ const dashboardContent = {
       { label: "New applications", Icon: ClipboardList },
       { label: "Users", Icon: Users },
     ],
-    activityTitle: "Pending company approvals",
-    activityMessage: "Company applications will appear here when employers submit them.",
   },
 };
 
@@ -64,16 +60,72 @@ function ActivityPanel({ id, title, message }: { id: string; title: string; mess
   );
 }
 
-async function ProtectedDashboard({ requiredRole }: { requiredRole: DashboardRole }) {
+const sectionMessages: Record<string, string> = {
+  cv: "CV uploads will be added with the job application workflow.",
+  categories: "Category management will be available when the categories API is connected.",
+  users: "User management will be available when account administration is connected.",
+  "email-templates": "Email templates will be available when email delivery is connected.",
+  activity: "The activity log will show administrative actions when audit reporting is connected.",
+  jobs: "Job moderation will be available when admin job management is connected.",
+};
+
+export async function DashboardPage({ role: requiredRole, section }: { role: DashboardRole; section: string }) {
   const { user, role } = await getDashboardUser();
   if (role !== requiredRole) redirect(dashboardPaths[role]);
 
-  const { title, description, stats, activityTitle, activityMessage } = dashboardContent[role];
+  const { title, description, stats } = dashboardContent[role];
   const firstName = user.name.trim().split(/\s+/)[0] || "there";
   const initial = firstName[0].toUpperCase();
+  const sectionTitle = dashboardNavigation[role].find(({ slug }) => slug === section)?.label ?? title;
+  const companyHref = dashboardHref(role, role === "seeker" ? "become-an-employer" : "company");
+  const manageJobsHref = dashboardHref(role, "jobs");
+  const postJobHref = dashboardHref(role, role === "seeker" ? "jobs" : "post-a-job");
+  const companyTitle = role === "seeker" ? "Become an Employer" : "Company profile";
+
+  if (section) {
+    return (
+      <DashboardShell key={section} role={role} name={user.name} section={section}>
+        <Link href={dashboardHref(role)} className="mb-3 inline-block text-sm font-semibold text-emerald-800 hover:underline">Dashboard</Link>
+        <h1 className="text-3xl font-extrabold tracking-tight">{sectionTitle}</h1>
+        {role === "admin" && section === "companies" ? (
+          <AdminCompanyQueue />
+        ) : section === "applications" || section === "received-applications" ? (
+          <JobApplicationsPanel role={section === "received-applications" ? "employer" : role} />
+        ) : role !== "admin" && ["company", "become-an-employer", "jobs", "post-a-job"].includes(section) ? (
+          <>
+            <CompanyApplicationPanel
+              title={companyTitle}
+              companyHref={companyHref}
+              jobsHref={postJobHref}
+              mode={section === "post-a-job" ? "post" : section === "jobs" ? (role === "seeker" ? "all" : "list") : "application"}
+            />
+            {section === "post-a-job" && (
+              <Link href={manageJobsHref} className="mt-4 inline-block text-sm font-semibold text-emerald-800 hover:underline">Manage drafts and publish jobs</Link>
+            )}
+            {section === "jobs" && role === "employer" && (
+              <Link href={postJobHref} className="mt-4 inline-block text-sm font-semibold text-emerald-800 hover:underline">Post a job</Link>
+            )}
+          </>
+        ) : section === "profile" || section === "settings" ? (
+          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <h2 className="text-lg font-bold">{role === "admin" ? "Signed-in administrator" : "Account details"}</h2>
+            <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
+              <div><dt className="font-semibold">Name</dt><dd className="break-words text-slate-600">{user.name}</dd></div>
+              <div><dt className="font-semibold">Email</dt><dd className="break-all text-slate-600">{user.email}</dd></div>
+              <div><dt className="font-semibold">Email verification</dt><dd className="text-slate-600">{user.emailVerified ? "Verified" : "Awaiting verification"}</dd></div>
+            </dl>
+          </section>
+        ) : (
+          <div className="mt-6">
+            <ActivityPanel id={section} title={sectionTitle} message={sectionMessages[section] ?? "This section is awaiting its workflow."} />
+          </div>
+        )}
+      </DashboardShell>
+    );
+  }
 
   return (
-    <DashboardShell role={role} name={user.name}>
+    <DashboardShell role={role} name={user.name} section={section}>
       <header className="flex items-start justify-between gap-4 border-b border-slate-200/80 pb-6">
         <div className="min-w-0">
           {role === "seeker" && <p className="mb-1 text-sm font-semibold text-emerald-800">{title}</p>}
@@ -99,28 +151,14 @@ async function ProtectedDashboard({ requiredRole }: { requiredRole: DashboardRol
         ))}
       </dl>
 
-      {role !== "admin" && (
-        <CompanyApplicationPanel title={role === "seeker" ? "Become an Employer" : "Company profile"} />
-      )}
+      {role !== "admin" && <CompanyApplicationPanel title={companyTitle} companyHref={companyHref} jobsHref={postJobHref} mode="overview" />}
 
-      <div className="mt-6 grid gap-4">
-        {role === "admin" ? <AdminCompanyQueue /> : (
-          <ActivityPanel id="activity" title={activityTitle} message={activityMessage} />
-        )}
-        {role === "admin" && (
-          <ActivityPanel id="recent-applications" title="Recent job applications" message="Applications from job seekers will appear here." />
-        )}
+      <div className={`mt-6 grid gap-4 ${role === "admin" ? "xl:grid-cols-2 xl:items-start" : ""}`}>
+        {role === "admin" && <AdminCompanyQueue overviewHref={dashboardHref(role, "companies")} />}
+        {role !== "employer" && <JobApplicationsPanel role={role} recent />}
       </div>
 
       {process.env.NODE_ENV === "development" && <BackendAccessCheck />}
     </DashboardShell>
-  );
-}
-
-export function DashboardPage({ role }: { role: DashboardRole }) {
-  return (
-    <Suspense fallback={<main className="p-6" role="status">Loading dashboard…</main>}>
-      <ProtectedDashboard requiredRole={role} />
-    </Suspense>
   );
 }

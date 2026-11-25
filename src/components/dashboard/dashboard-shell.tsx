@@ -2,47 +2,21 @@
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { dashboardHref, dashboardNavigation } from "@/lib/dashboard-navigation";
 import type { DashboardRole } from "@/lib/dashboard-access";
-import {
-  BriefcaseBusiness, Building2, ClipboardList, FileText, LayoutDashboard,
-  List, LogOut, Menu, Settings, UserRound, Users, X,
-} from "lucide-react";
+import { BriefcaseBusiness, LogOut, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState, type ReactNode } from "react";
 
 const roleLabels = { seeker: "Job seeker", employer: "Employer", admin: "Admin" };
 
-const navigation = {
-  seeker: [
-    { label: "My applications", href: "#activity", Icon: ClipboardList },
-    { label: "My profile", Icon: UserRound },
-    { label: "CV / Resume", Icon: FileText },
-    { label: "Become an Employer", href: "#employer-access", Icon: Building2 },
-    { label: "Settings", Icon: Settings },
-  ],
-  employer: [
-    { label: "Post a job", Icon: BriefcaseBusiness },
-    { label: "Manage jobs", href: "#activity", Icon: List },
-    { label: "Applications", Icon: ClipboardList },
-    { label: "Company profile", href: "#employer-access", Icon: Building2 },
-    { label: "Settings", Icon: Settings },
-  ],
-  admin: [
-    { label: "Manage companies", href: "#activity", Icon: Building2 },
-    { label: "Applications", href: "#recent-applications", Icon: ClipboardList },
-    { label: "Manage jobs", Icon: BriefcaseBusiness },
-    { label: "Categories", Icon: List },
-    { label: "Users", Icon: Users },
-    { label: "Settings", Icon: Settings },
-  ],
-};
-
 const navLink = "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium";
 const focusStyle = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300";
 
-export function DashboardShell({ role, name, children }: {
+export function DashboardShell({ role, name, section, children }: {
   role: DashboardRole;
   name: string;
+  section: string;
   children: ReactNode;
 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -99,22 +73,24 @@ export function DashboardShell({ role, name, children }: {
             </div>
           </div>
           <nav aria-label="Dashboard navigation" className="space-y-1">
-            <a href="#overview" aria-current="page" onClick={() => setIsMenuOpen(false)}
-              className={`${navLink} bg-emerald-300 font-semibold text-[#092d28] ${focusStyle}`}>
-              <LayoutDashboard aria-hidden="true" className="size-4" /> Dashboard
-            </a>
-            {navigation[role].map(({ label, href, Icon }) => (
-              href ? (
-                <a key={label} href={href} onClick={() => setIsMenuOpen(false)}
-                  className={`${navLink} text-slate-100 hover:bg-white/10 motion-safe:transition-colors ${focusStyle}`}>
+            {dashboardNavigation[role].map(({ label, slug, Icon }) => {
+              const isActive = slug === section;
+              const activeStyle = isActive
+                ? "bg-linear-to-r from-emerald-400 to-emerald-300 font-semibold text-[#092d28]"
+                : "text-slate-100 hover:bg-white/10";
+
+              return (
+                <Link
+                  key={slug}
+                  href={dashboardHref(role, slug)}
+                  aria-current={isActive ? "page" : undefined}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`${navLink} ${activeStyle} motion-safe:transition-colors ${focusStyle}`}
+                >
                   <Icon aria-hidden="true" className="size-4 shrink-0" /> {label}
-                </a>
-              ) : (
-                <span key={label} aria-disabled="true" className={`${navLink} text-slate-400`}>
-                  <Icon aria-hidden="true" className="size-4 shrink-0" /> {label}
-                </span>
-              )
-            ))}
+                </Link>
+              );
+            })}
           </nav>
           <div className="mt-6 border-t border-white/10 pt-3">
             <Button type="button" variant="ghost" onClick={signOut} disabled={isSigningOut}

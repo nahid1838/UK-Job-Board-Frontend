@@ -10,10 +10,10 @@ export const dashboardPaths = {
 
 export type DashboardRole = keyof typeof dashboardPaths;
 
-export async function getDashboardUser() {
+export async function getDashboardUser(returnTo?: string) {
   const session = await auth.api.getSession({ headers: await headers() });
 
-  if (!session) redirect("/login");
+  if (!session) redirect(returnTo ? `/login?${new URLSearchParams({ next: returnTo })}` : "/login");
 
   const { user } = session;
   // Older accounts already have an account type from registration.

@@ -40,12 +40,15 @@ function getRegistrationError(code: string | undefined, status: number) {
 
 const inputStyle = "mt-1.5 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-base text-[#10213b] placeholder:text-slate-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700";
 
-type AuthFormProps =
+type AuthFormProps = (
   | { mode: "login"; showSocialError: boolean }
-  | { mode: "register"; initialRole: "seeker" | "employer"; showSocialError: boolean };
+  | { mode: "register"; initialRole: "seeker" | "employer"; showSocialError: boolean }
+) & { returnTo?: string };
 
 export function AuthForm(props: AuthFormProps) {
   const isRegister = props.mode === "register";
+  const authDestination = props.returnTo ?? "/dashboard";
+  const returnQuery = props.returnTo ? `?${new URLSearchParams({ next: props.returnTo })}` : "";
   const router = useRouter();
   const passwordId = useId();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -67,8 +70,11 @@ export function AuthForm(props: AuthFormProps) {
     try {
       const { data, error } = await authClient.signIn.social({
         provider,
-        callbackURL: "/dashboard",
-        errorCallbackURL: isRegister ? "/register?socialError=1" : "/login?socialError=1",
+        callbackURL: authDestination,
+        errorCallbackURL: `${isRegister ? "/register" : "/login"}?${new URLSearchParams({
+          socialError: "1",
+          ...(props.returnTo && { next: props.returnTo }),
+        })}`,
         disableRedirect: true,
       });
 
@@ -130,11 +136,11 @@ export function AuthForm(props: AuthFormProps) {
           id: "registration",
           description: isSignedIn ? "You’re signed in. Welcome to UK Job Board!" : "You can now sign in to UK Job Board.",
         });
-        router.replace(isSignedIn ? "/dashboard" : "/login");
+        router.replace(isSignedIn ? authDestination : `/login${returnQuery}`);
         return;
       }
 
-      router.replace("/dashboard");
+      router.replace(authDestination);
     } catch {
       const message = "We couldn’t reach the account service. Check your connection and try again.";
       if (isRegister) {
@@ -248,7 +254,7 @@ export function AuthForm(props: AuthFormProps) {
 
       <p className="mt-6 border-t border-slate-200 pt-5 text-center text-sm text-slate-600">
         {isRegister ? "Already have an account?" : "New to UK Job Board?"}{" "}
-        <Link href={isRegister ? "/login" : "/register"} className="rounded-sm font-semibold text-emerald-800 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+        <Link href={`${isRegister ? "/login" : "/register"}${returnQuery}`} className="rounded-sm font-semibold text-emerald-800 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
           {isRegister ? "Sign in" : "Create an account"}
         </Link>
       </p>
