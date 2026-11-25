@@ -15,7 +15,7 @@ export function HomeBanner() {
       aria-labelledby="home-banner-title"
       className="relative isolate mx-auto max-w-7xl overflow-hidden bg-linear-to-br from-[#002b29] via-[#00474a] to-[#00765f] text-white sm:rounded-2xl"
     >
-      <div className="relative z-10 px-5 pt-8 sm:px-10 sm:pt-11 md:pt-12 lg:pt-14">
+      <div className="relative z-10 px-5 pt-8 motion-safe:animate-in motion-safe:fade-in-75 motion-safe:slide-in-from-bottom-2 motion-safe:duration-500 sm:px-10 sm:pt-11 md:pt-12 lg:pt-14">
         <p className="mb-4 hidden w-fit items-center gap-2 rounded-full bg-[#08634f] px-3 py-1.5 text-sm font-semibold sm:flex">
           <span aria-hidden="true">🇬🇧</span> Find Your Dream Job in the UK
         </p>
