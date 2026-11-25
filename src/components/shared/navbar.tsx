@@ -1,6 +1,9 @@
 
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { authClient } from "@/lib/auth-client";
+
 import {
   ArrowUpRight,
   BriefcaseBusiness,
@@ -27,6 +30,40 @@ export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
+  const { data: session } = authClient.useSession();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
+
+  async function handleSignOut() {
+    setIsSigningOut(true);
+    setSignOutError("");
+
+    try {
+      const { error } = await authClient.signOut();
+      if (error) {
+        setSignOutError("Couldn’t sign out. Please try again.");
+        return;
+      }
+
+      closeMenu();
+    } catch {
+      setSignOutError("Couldn’t sign out. Please try again.");
+    } finally {
+      setIsSigningOut(false);
+    }
+  }
+
+  const signOutButton = (
+    <Button
+      type="button"
+      variant="outline"
+      onClick={handleSignOut}
+      disabled={isSigningOut}
+      className="min-h-11 px-4"
+    >
+      {isSigningOut ? "Signing out…" : "Sign out"}
+    </Button>
+  );
 
   function closeMenu() {
     setIsMenuOpen(false);
@@ -114,40 +151,48 @@ export function Navbar() {
               <Search aria-hidden="true" className="size-[19px]" />
             </Link>
 
-            <Link
-              href="/login"
-              className={`inline-flex min-h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-[#007653] ${focusStyle}`}
-            >
-              Login
-            </Link>
+            {session ? signOutButton : (
+              <>
+                <Link
+                  href="/login"
+                  className={`inline-flex min-h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-[#007653] ${focusStyle}`}
+                >
+                  Login
+                </Link>
 
-            <Link
-              href="/register"
-              className={`group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#007653] px-5 text-sm font-semibold text-white shadow-md shadow-emerald-900/10 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#005c41] hover:shadow-lg hover:shadow-emerald-900/15 ${focusStyle}`}
-            >
-              Get Started
-              <ArrowUpRight
-                aria-hidden="true"
-                className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              />
-            </Link>
+                <Link
+                  href="/register"
+                  className={`group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#007653] px-5 text-sm font-semibold text-white shadow-md shadow-emerald-900/10 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#005c41] hover:shadow-lg hover:shadow-emerald-900/15 ${focusStyle}`}
+                >
+                  Get Started
+                  <ArrowUpRight
+                    aria-hidden="true"
+                    className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                  />
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Tablet Actions */}
           <div className="ml-auto hidden items-center gap-2 lg:flex xl:hidden">
-            <Link
-              href="/login"
-              className={`inline-flex min-h-10 items-center justify-center rounded-lg px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 ${focusStyle}`}
-            >
-              Login
-            </Link>
+            {session ? signOutButton : (
+              <>
+                <Link
+                  href="/login"
+                  className={`inline-flex min-h-10 items-center justify-center rounded-lg px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 ${focusStyle}`}
+                >
+                  Login
+                </Link>
 
-            <Link
-              href="/register"
-              className={`inline-flex min-h-10 items-center justify-center rounded-lg bg-[#007653] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#005c41] ${focusStyle}`}
-            >
-              Register
-            </Link>
+                <Link
+                  href="/register"
+                  className={`inline-flex min-h-10 items-center justify-center rounded-lg bg-[#007653] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#005c41] ${focusStyle}`}
+                >
+                  Register
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -214,26 +259,31 @@ export function Navbar() {
 
               {/* Mobile Auth Actions */}
               <div className="grid grid-cols-2 gap-3 border-t border-slate-100 py-4">
-                <Link
-                  href="/login"
-                  onClick={closeMenu}
-                  className={`flex min-h-11 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 ${focusStyle}`}
-                >
-                  Login
-                </Link>
+                {session ? signOutButton : (
+                  <>
+                    <Link
+                      href="/login"
+                      onClick={closeMenu}
+                      className={`flex min-h-11 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 ${focusStyle}`}
+                    >
+                      Login
+                    </Link>
 
-                <Link
-                  href="/register"
-                  onClick={closeMenu}
-                  className={`flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#007653] text-sm font-semibold text-white transition-colors hover:bg-[#005c41] ${focusStyle}`}
-                >
-                  Get Started
-                  <ArrowUpRight aria-hidden="true" className="size-4" />
-                </Link>
+                    <Link
+                      href="/register"
+                      onClick={closeMenu}
+                      className={`flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#007653] text-sm font-semibold text-white transition-colors hover:bg-[#005c41] ${focusStyle}`}
+                    >
+                      Get Started
+                      <ArrowUpRight aria-hidden="true" className="size-4" />
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           )}
         </div>
+        {signOutError && <p role="alert" className="pb-3 text-sm text-red-700">{signOutError}</p>}
       </nav>
     </header>
   );

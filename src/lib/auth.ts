@@ -6,6 +6,19 @@ const client = new MongoClient(process.env.MONGODB_URI as string);
 const db = client.db("UkJobBoardDB");
 
 export const auth = betterAuth({
+    user: {
+        additionalFields: {
+            // This records a signup preference. Permissions are assigned separately.
+            accountType: {
+                type: ["seeker", "employer"],
+                required: false,
+                defaultValue: "seeker",
+                transform: {
+                    input: (value) => value === "employer" ? "employer" : "seeker",
+                },
+            },
+        },
+    },
     emailAndPassword: {
         enabled: true
     },
