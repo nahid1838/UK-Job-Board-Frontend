@@ -1,0 +1,45 @@
+import type { PublicJob } from "@/lib/public-jobs";
+import { BriefcaseBusiness, MapPin } from "lucide-react";
+import Link from "next/link";
+
+const pounds = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 2 });
+
+function formatSalary(job: PublicJob) {
+  if (job.salaryMin === null && job.salaryMax === null) return "Salary not listed";
+  const minimum = job.salaryMin === null ? "" : pounds.format(job.salaryMin);
+  const maximum = job.salaryMax === null ? "" : pounds.format(job.salaryMax);
+  const range = minimum && maximum ? `${minimum}–${maximum}` : minimum ? `From ${minimum}` : `Up to ${maximum}`;
+  return `${range} per ${job.salaryPeriod}`;
+}
+
+export function JobCard({ job, compact = false }: { job: PublicJob; compact?: boolean }) {
+  return (
+    <article className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 text-[#10213b] shadow-sm hover:border-emerald-200 motion-safe:transition motion-safe:hover:-translate-y-0.5">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-800">
+          <BriefcaseBusiness aria-hidden="true" className="size-5" />
+        </span>
+        <div className="min-w-0">
+          <h3 className="font-bold [overflow-wrap:anywhere]">{job.title}</h3>
+          <p className="mt-0.5 text-sm text-slate-600 [overflow-wrap:anywhere]">{job.companyName} · {job.category}</p>
+        </div>
+      </div>
+      <p className="mt-4 flex items-start gap-2 text-sm text-slate-700">
+        <MapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-emerald-800" />
+        <span className="min-w-0 [overflow-wrap:anywhere]">{job.location} · {job.jobType} · {job.workMode}</span>
+      </p>
+      <p className="mt-2 text-sm font-semibold text-emerald-800">{formatSalary(job)}</p>
+      <div className="mt-auto pt-4">
+        <Link href={`/jobs/${job._id}/apply`} aria-label={`Apply for ${job.title}`} className="inline-flex min-h-10 items-center rounded-lg bg-[#007653] px-4 text-sm font-semibold text-white hover:bg-[#005c41] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Apply</Link>
+      </div>
+      {!compact && (
+        <details className="mt-4 border-t border-slate-100 pt-3 text-sm">
+          <summary className="cursor-pointer font-semibold">Job details</summary>
+          <p className="mt-3 whitespace-pre-wrap text-slate-700 [overflow-wrap:anywhere]">{job.description}</p>
+          <p className="mt-3 text-slate-600">Experience: {job.experience} · Closes {job.closingDate.split("-").reverse().join("/")}</p>
+          {job.rightToWork && <p className="mt-1 text-slate-600">Candidates must have the right to work in the UK.</p>}
+        </details>
+      )}
+    </article>
+  );
+}

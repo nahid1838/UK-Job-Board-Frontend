@@ -1,6 +1,7 @@
 ﻿import { BackendAccessCheck } from "./backend-access-check";
 import { AdminCompanyQueue, CompanyApplicationPanel } from "./company-applications";
 import { DashboardShell } from "./dashboard-shell";
+import { CategoryManager } from "./category-manager";
 import { JobApplicationsPanel } from "./job-applications-panel";
 import { dashboardPaths, getDashboardUser, type DashboardRole } from "@/lib/dashboard-access";
 import { dashboardHref, dashboardNavigation } from "@/lib/dashboard-navigation";
@@ -62,7 +63,6 @@ function ActivityPanel({ id, title, message }: { id: string; title: string; mess
 
 const sectionMessages: Record<string, string> = {
   cv: "CV uploads will be added with the job application workflow.",
-  categories: "Category management will be available when the categories API is connected.",
   users: "User management will be available when account administration is connected.",
   "email-templates": "Email templates will be available when email delivery is connected.",
   activity: "The activity log will show administrative actions when audit reporting is connected.",
@@ -89,6 +89,8 @@ export async function DashboardPage({ role: requiredRole, section }: { role: Das
         <h1 className="text-3xl font-extrabold tracking-tight">{sectionTitle}</h1>
         {role === "admin" && section === "companies" ? (
           <AdminCompanyQueue />
+        ) : role === "admin" && section === "categories" ? (
+          <CategoryManager />
         ) : section === "applications" || section === "received-applications" ? (
           <JobApplicationsPanel role={section === "received-applications" ? "employer" : role} />
         ) : role !== "admin" && ["company", "become-an-employer", "jobs", "post-a-job"].includes(section) ? (

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { backendErrorMessage, backendRequest } from "@/lib/backend";
+import { getCategories, type Category } from "@/lib/categories";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -10,7 +11,6 @@ type EmployerJob = { _id: string; title: string; location: string; status: "draf
 const inputStyle = "mt-1.5 block min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal focus-visible:outline-2 focus-visible:outline-emerald-700";
 const fields = [
   { name: "title", label: "Job title", max: 120 },
-  { name: "category", label: "Category", max: 100 },
   { name: "location", label: "Town or city", max: 120 },
   { name: "postcode", label: "UK postcode", max: 10 },
   { name: "jobType", label: "Job type", options: ["Full-time", "Part-time", "Contract", "Temporary", "Internship", "Apprenticeship"] },
@@ -25,15 +25,25 @@ export function JobPostingPanel({ mode = "all" }: { mode?: "all" | "post" | "lis
   const [pendingAction, setPendingAction] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const canPost = mode === "post" || mode === "all";
 
   useEffect(() => {
     const controller = new AbortController();
-    backendRequest<{ jobs: EmployerJob[] }>("/api/employer/jobs", { signal: controller.signal })
-      .then(({ jobs }) => { if (!controller.signal.aborted) setJobs(jobs); })
+    const options = { signal: controller.signal };
+    Promise.all([
+      backendRequest<{ jobs: EmployerJob[] }>("/api/employer/jobs", options),
+      canPost ? getCategories(options) : Promise.resolve([]),
+    ])
+      .then(([{ jobs }, categories]) => {
+        if (controller.signal.aborted) return;
+        setJobs(jobs);
+        setCategories(categories);
+      })
       .catch((error) => { if (!controller.signal.aborted) setLoadError(backendErrorMessage(error)); })
       .finally(() => { if (!controller.signal.aborted) setIsLoading(false); });
     return () => controller.abort();
-  }, []);
+  }, [canPost]);
 
   async function saveDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -93,8 +103,15 @@ export function JobPostingPanel({ mode = "all" }: { mode?: "all" | "post" | "lis
       {isLoading && <p role="status" className="mt-4 text-sm">Loading your jobs…</p>}
       {!isLoading && !loadError && (
         <>
-          {mode !== "list" && mode !== "recent" && <form onSubmit={saveDraft} className="mt-4 space-y-4">
+          {canPost && categories.length === 0 && <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">An admin needs to add a visible category before you can save a job draft.</p>}
+          {canPost && categories.length > 0 && <form method="post" onSubmit={saveDraft} className="mt-4 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-semibold">Category
+                <select name="categoryId" required className={inputStyle} defaultValue="">
+                  <option value="" disabled>Select a category</option>
+                  {categories.map((category) => <option key={category._id} value={category._id}>{category.name}</option>)}
+                </select>
+              </label>
               {fields.map((field) => (
                 <label key={field.name} className="text-sm font-semibold">
                   {field.label}
