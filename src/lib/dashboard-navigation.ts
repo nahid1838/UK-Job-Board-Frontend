@@ -1,5 +1,5 @@
 import {
-  Activity, Bell, Bookmark, BriefcaseBusiness, Building2, ClipboardList, FileText, LayoutDashboard, Search,
+  Activity, Bell, Bookmark, BriefcaseBusiness, Building2, ChartNoAxesColumnIncreasing, ClipboardList, FileText, LayoutDashboard, Search,
   List, Mail, Plus, Settings, Star, UserRound, Users,
 } from "lucide-react";
 import type { DashboardRole } from "./dashboard-access";
@@ -33,14 +33,17 @@ export const dashboardNavigation = {
   ],
   admin: [
     overview,
-    { slug: "companies", label: "Manage companies", Icon: Building2 },
+    { slug: "companies", label: "Companies", Icon: Building2 },
+    { slug: "jobs", label: "Jobs", Icon: BriefcaseBusiness },
     { slug: "applications", label: "Applications", Icon: ClipboardList },
-    { slug: "jobs", label: "Manage jobs", Icon: BriefcaseBusiness },
     { slug: "categories", label: "Categories", Icon: List },
     { slug: "users", label: "Users", Icon: Users },
-    { slug: "email-templates", label: "Email templates", Icon: Mail },
-    { slug: "activity", label: "Activity log", Icon: Activity },
-    { slug: "settings", label: "Settings", Icon: Settings },
+    { slug: "email-templates", label: "Email Templates", Icon: Mail },
+    { slug: "activity", label: "Activity Logs", Icon: Activity },
+    { slug: "settings", label: "Site Settings", Icon: Settings },
+    { slug: "reports", label: "Reports", Icon: ChartNoAxesColumnIncreasing },
+    { slug: "notifications", label: "Notifications", Icon: Bell },
+    { slug: "profile", label: "My Profile", Icon: UserRound },
   ],
 };
 

@@ -1,65 +1,21 @@
-﻿import { BackendAccessCheck } from "./backend-access-check";
-import { AdminCompanyQueue, CompanyApplicationPanel } from "./company-applications";
-import { DashboardShell } from "./dashboard-shell";
-import { CategoryManager } from "./category-manager";
-import { JobApplicationsPanel } from "./job-applications-panel";
-import { JobPostingPanel } from "./job-posting-panel";
+﻿import { AdminWorkspace } from "./admin-workspace";
+import { CompanyApplicationPanel } from "./company-applications";
 import { EmployerWorkspace } from "./employer-workspace";
+import { JobApplicationsPanel } from "./job-applications-panel";
 import { SeekerWorkspace } from "./seeker-workspace";
 import { authEmailEnabled } from "@/lib/auth-email";
 import { dashboardPaths, getDashboardUser, type DashboardRole } from "@/lib/dashboard-access";
-import { dashboardHref, dashboardNavigation } from "@/lib/dashboard-navigation";
-import { BriefcaseBusiness, Building2, ClipboardList, Users } from "lucide-react";
-import Link from "next/link";
+import { dashboardHref } from "@/lib/dashboard-navigation";
 import { redirect } from "next/navigation";
-
-const dashboardContent = {
-  admin: {
-    title: "Admin Dashboard",
-    description: "Review companies and keep track of activity across the job board.",
-    stats: [
-      { label: "Live jobs", Icon: BriefcaseBusiness },
-      { label: "Companies", Icon: Building2 },
-      { label: "New applications", Icon: ClipboardList },
-      { label: "Users", Icon: Users },
-    ],
-  },
-};
-
-const statStyles = [
-  "border-blue-100 bg-[#eef4ff] text-blue-800",
-  "border-amber-100 bg-[#fff5e8] text-amber-800",
-  "border-emerald-100 bg-[#e9faf2] text-emerald-800",
-  "border-indigo-100 bg-[#eef0ff] text-indigo-800",
-];
-
-function ActivityPanel({ id, title, message }: { id: string; title: string; message: string }) {
-  return (
-    <section id={id} className="scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm shadow-slate-900/5 sm:p-6">
-      <h2 className="text-lg font-bold tracking-tight">{title}</h2>
-      <div className="mt-4 flex items-center gap-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 sm:p-5">
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-slate-500">
-          <ClipboardList aria-hidden="true" className="size-5" />
-        </span>
-        <p className="text-sm leading-relaxed text-slate-600">{message}</p>
-      </div>
-    </section>
-  );
-}
-
-const sectionMessages: Record<string, string> = {
-  users: "User management will be available when account administration is connected.",
-  "email-templates": "Email templates will be available when email delivery is connected.",
-  activity: "The activity log will show administrative actions when audit reporting is connected.",
-};
 
 export async function DashboardPage({ role: requiredRole, section }: { role: DashboardRole; section: string }) {
   const { user, role } = await getDashboardUser();
   if (role !== requiredRole) redirect(dashboardPaths[role]);
 
+  const account = { email: user.email, verified: user.emailVerified, emailEnabled: authEmailEnabled };
   if (role === "seeker") {
     return (
-      <SeekerWorkspace section={section} accountName={user.name} email={user.email} verified={user.emailVerified} emailEnabled={authEmailEnabled}>
+      <SeekerWorkspace key={section} section={section} accountName={user.name} {...account}>
         {(section === "become-an-employer" || section === "jobs") && (
           <CompanyApplicationPanel
             title="Become an Employer" companyHref={dashboardHref(role, "become-an-employer")} jobsHref={dashboardHref(role, "jobs")}
@@ -72,76 +28,7 @@ export async function DashboardPage({ role: requiredRole, section }: { role: Das
   }
 
   if (role === "employer") {
-    return <EmployerWorkspace key={section} section={section} accountName={user.name} email={user.email} verified={user.emailVerified} emailEnabled={authEmailEnabled} />;
+    return <EmployerWorkspace key={section} section={section} accountName={user.name} {...account} />;
   }
-
-  const { title, description, stats } = dashboardContent[role];
-  const initial = user.name.trim()[0]?.toUpperCase() ?? "U";
-  const sectionTitle = dashboardNavigation[role].find(({ slug }) => slug === section)?.label ?? title;
-
-  if (section) {
-    return (
-      <DashboardShell key={section} role={role} name={user.name} section={section}>
-        <Link href={dashboardHref(role)} className="mb-3 inline-block text-sm font-semibold text-emerald-800 hover:underline">Dashboard</Link>
-        <h1 className="text-3xl font-extrabold tracking-tight">{sectionTitle}</h1>
-        {role === "admin" && section === "companies" ? (
-          <AdminCompanyQueue />
-        ) : role === "admin" && section === "categories" ? (
-          <CategoryManager />
-        ) : role === "admin" && section === "jobs" ? (
-          <JobPostingPanel mode="list" admin />
-        ) : section === "applications" ? (
-          <JobApplicationsPanel role={role} />
-        ) : section === "profile" || section === "settings" ? (
-          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="text-lg font-bold">{role === "admin" ? "Signed-in administrator" : "Account details"}</h2>
-            <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
-              <div><dt className="font-semibold">Name</dt><dd className="break-words text-slate-600">{user.name}</dd></div>
-              <div><dt className="font-semibold">Email</dt><dd className="break-all text-slate-600">{user.email}</dd></div>
-              <div><dt className="font-semibold">Email verification</dt><dd className="text-slate-600">{user.emailVerified ? "Verified" : "Awaiting verification"}</dd></div>
-            </dl>
-          </section>
-        ) : (
-          <div className="mt-6">
-            <ActivityPanel id={section} title={sectionTitle} message={sectionMessages[section] ?? "This section is awaiting its workflow."} />
-          </div>
-        )}
-      </DashboardShell>
-    );
-  }
-
-  return (
-    <DashboardShell role={role} name={user.name} section={section}>
-      <header className="flex items-start justify-between gap-4 border-b border-slate-200/80 pb-6">
-        <div className="min-w-0">
-          <h1 className="break-words text-3xl font-extrabold tracking-tight sm:text-4xl">
-            {title}
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">{description}</p>
-        </div>
-        <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-full border border-emerald-200 bg-emerald-50 font-bold text-emerald-800">
-          {initial}
-        </span>
-      </header>
-
-      <dl aria-label="Dashboard overview" className={`mt-6 grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 sm:gap-4 ${role === "admin" ? "xl:grid-cols-4" : "md:grid-cols-3"}`}>
-        {stats.map(({ label, Icon }, index) => (
-          <div key={label} className={`rounded-2xl border p-4 motion-safe:transition-transform motion-safe:hover:-translate-y-0.5 sm:p-5 ${statStyles[index]}`}>
-            <div className="mb-3 grid size-9 place-items-center rounded-lg bg-white/70">
-              <Icon aria-hidden="true" className="size-5" />
-            </div>
-            <dt className="text-sm font-semibold text-[#10213b]">{label}</dt>
-            <dd className="mt-1 text-2xl font-extrabold leading-none"><span aria-hidden="true">—</span><span className="sr-only">Data unavailable</span></dd>
-          </div>
-        ))}
-      </dl>
-
-      <div className={`mt-6 grid gap-4 ${role === "admin" ? "xl:grid-cols-2 xl:items-start" : ""}`}>
-        {role === "admin" && <AdminCompanyQueue overviewHref={dashboardHref(role, "companies")} />}
-        <JobApplicationsPanel role={role} recent />
-      </div>
-
-      {process.env.NODE_ENV === "development" && <BackendAccessCheck />}
-    </DashboardShell>
-  );
+  return <AdminWorkspace key={section} section={section} name={user.name} {...account} />;
 }

@@ -20,12 +20,11 @@ async function Information({ params }: Props) {
   if (!Object.hasOwn(content, page)) notFound();
   const { title, copy } = content[page as keyof typeof content];
   let contactEmail = process.env.SITE_CONTACT_EMAIL ?? "";
-  if (page === "contact" && !contactEmail) {
+  if (page === "contact") {
     try {
-      ({ contactEmail } = await backendRequest<{ contactEmail: string }>("/api/site-settings", { signal: AbortSignal.timeout(4000) }));
-    } catch {
-      contactEmail = "";
-    }
+      const settings = await backendRequest<{ contactEmail: string }>("/api/site-settings", { signal: AbortSignal.timeout(4000) });
+      contactEmail = settings.contactEmail || contactEmail;
+    } catch {}
   }
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-9">

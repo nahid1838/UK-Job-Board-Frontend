@@ -7,7 +7,7 @@ import { EmployerPerformance, type PerformancePoint } from "./employer-performan
 import welcomeArt from "../../../public/images/employer-dashboard-welcome.png";
 
 export type EmployerDashboardData = {
-  company: { name: string; status: "pending" | "approved" | "rejected"; logoUrl?: string; rejectionReason?: string } | null;
+  company: { name: string; status: "pending" | "approved" | "rejected" | "suspended"; logoUrl?: string; rejectionReason?: string } | null;
   stats: { jobs: number; applications: number; hot: number; views: number };
   jobs: { _id: string; title: string; location: string; jobType: string; status: "draft" | "live" | "closed"; closingDate: string; publishedAt?: string; createdAt: string }[];
   applications: { _id: string; name: string; jobTitle: string; forwardedAt?: string; createdAt: string; employerStatus?: "reviewed" | "shortlisted" | "not-suitable" }[];
@@ -41,12 +41,13 @@ export function EmployerOverview({ data, name, days, changeDays, error }: {
   const company = data?.company;
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const formatter = new Intl.NumberFormat("en-GB", { notation: "compact", maximumFractionDigits: 1 });
-  const statusLabel = status === "approved" ? "Approved" : status === "pending" ? "Pending review" : status === "rejected" ? "Changes requested" : data ? "Company setup" : "Loading…";
+  const statusLabel = status === "approved" ? "Approved" : status === "pending" ? "Pending review" : status === "rejected" ? "Changes requested" : status === "suspended" ? "Suspended" : data ? "Company setup" : "Loading…";
   const statusCopy = status === "approved" ? "Your company is approved. You can post and manage jobs."
     : status === "pending" ? "An admin is reviewing your company application."
     : status === "rejected" ? company?.rejectionReason || "Update your company application and submit it again."
-    : "Submit your company details to get approved for job posting.";
-  const StatusIcon = status === "approved" ? CircleCheck : status === "rejected" ? XCircle : Clock3;
+    : status === "suspended" ? "Contact support about restoring your company’s access."
+      : "Submit your company details to get approved for job posting.";
+  const StatusIcon = status === "approved" ? CircleCheck : status === "rejected" || status === "suspended" ? XCircle : Clock3;
 
   return (
     <>

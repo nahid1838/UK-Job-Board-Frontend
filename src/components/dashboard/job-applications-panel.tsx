@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { backendEndpoint, backendErrorMessage, backendRequest } from "@/lib/backend";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 type Status = "new" | "shortlisted" | "forwarded" | "not-suitable";
 type EmployerStatus = "reviewed" | "shortlisted" | "not-suitable";
@@ -14,6 +14,7 @@ type Application = {
   createdAt: string;
   forwardedAt?: string;
   employerStatus?: EmployerStatus;
+  adminNote?: string;
   name?: string;
   email?: string;
   phone?: string;
@@ -51,6 +52,10 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
   const [activeId, setActiveId] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const visible = applications.filter((item) => (!statusFilter || statusFilter === item.status)
+    && `${item.name ?? ""} ${item.jobTitle} ${item.companyName}`.toLowerCase().includes(query.trim().toLowerCase()));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -112,6 +117,23 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
     }
   }
 
+  async function saveAdminNote(event: FormEvent<HTMLFormElement>, id: string) {
+    event.preventDefault();
+    if (activeId) return;
+    setActiveId(id);
+    setError("");
+    setNotice("");
+    try {
+      const note = new FormData(event.currentTarget).get("note");
+      const reply = await backendRequest<{ note: string }>(`/api/admin/job-applications/${encodeURIComponent(id)}/note`, {
+        method: "PATCH", body: JSON.stringify({ note }),
+      });
+      setApplications((current) => current.map((item) => item._id === id ? { ...item, adminNote: reply.note } : item));
+      setNotice("Private note saved.");
+    } catch (error) { setError(backendErrorMessage(error)); }
+    finally { setActiveId(""); }
+  }
+
   return (
     <section className={`${recent ? "" : "mt-6 "}min-w-0 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -125,9 +147,14 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
       {isLoading && <p role="status" className="mt-3 text-sm text-slate-600">Loading applications…</p>}
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
       {notice && <p role="status" className="mt-3 text-sm text-emerald-800">{notice}</p>}
+      {role === "admin" && !recent && <div className="mt-4 flex flex-wrap gap-2">
+        <input aria-label="Search applications" placeholder="Applicant, job, or company" value={query} onChange={(event) => setQuery(event.target.value)} className="min-h-10 w-full max-w-xs rounded-lg border border-slate-300 px-3 text-sm" />
+        <select aria-label="Application status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="min-h-10 rounded-lg border border-slate-300 px-3 text-sm"><option value="">All statuses</option>{Object.entries(labels).map(([value, status]) => <option key={value} value={value}>{status.label}</option>)}</select>
+      </div>}
       {!isLoading && !error && applications.length === 0 && <p className="mt-3 text-sm text-slate-600">{emptyMessages[role]}</p>}
+      {!isLoading && applications.length > 0 && !visible.length && <p className="mt-3 text-sm text-slate-600">No applications match your filters.</p>}
       <ul className="mt-4 space-y-3">
-        {(recent ? applications.slice(0, 3) : applications).map((application) => {
+        {(recent ? visible.slice(0, 3) : visible).map((application) => {
           const status = role === "employer" && application.employerStatus ? employerLabels[application.employerStatus] : labels[application.status];
           return (
             <li id={`application-${application._id}`} key={application._id} className="scroll-mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -151,6 +178,10 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
                     <div className="sm:col-span-2"><dt className="font-semibold">Cover letter</dt><dd className="whitespace-pre-wrap break-words">{application.coverLetter || "None provided."}</dd></div>
                   </dl>
                   <a href={backendEndpoint(`/api/job-applications/${encodeURIComponent(application._id)}/cv`).href} className="mt-3 inline-block font-semibold text-emerald-800 underline">Download CV</a>
+                  {role === "admin" && <form method="post" onSubmit={(event) => saveAdminNote(event, application._id)} className="mt-4 space-y-2">
+                    <label className="block font-semibold">Private admin note<textarea name="note" defaultValue={application.adminNote} maxLength={2000} rows={3} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2 font-normal focus-visible:outline-2 focus-visible:outline-emerald-700" /></label>
+                    <Button type="submit" variant="outline" disabled={!!activeId}>Save note</Button>
+                  </form>}
                   {role === "employer" && <label className="mt-4 block max-w-56 text-sm font-semibold">Your review status
                     <select value={application.employerStatus ?? ""} disabled={!!activeId}
                       onChange={(event) => { if (event.target.value) void updateEmployerStatus(application._id, event.target.value as EmployerStatus); }}

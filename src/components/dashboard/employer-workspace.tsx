@@ -144,7 +144,7 @@ export function EmployerWorkspace({ section, accountName, email, verified, email
           <Link href={employerHref("company")} className="mb-4 flex flex-col items-center gap-2 rounded-2xl border border-white/20 bg-black/5 p-3 text-center hover:bg-white/10">
             <CompanyAvatar name={companyName} logo={logo} />
             <span className="max-w-full text-sm font-bold [overflow-wrap:anywhere]">{companyName}</span>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${status === "approved" ? "bg-[#17a65f] text-white" : "bg-white/15 text-emerald-50"}`}>{status === "approved" ? "Approved ✓" : status === "pending" ? "Pending review" : status === "rejected" ? "Changes requested" : "Company profile"}</span>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${status === "approved" ? "bg-[#17a65f] text-white" : "bg-white/15 text-emerald-50"}`}>{status === "approved" ? "Approved ✓" : status === "pending" ? "Pending review" : status === "rejected" ? "Changes requested" : status === "suspended" ? "Suspended" : "Company profile"}</span>
           </Link>
           <nav aria-label="Employer navigation" className="space-y-0.5">
             {dashboardNavigation.employer.filter(({ slug }) => slug !== "profile").map(({ slug, label, Icon }) => {

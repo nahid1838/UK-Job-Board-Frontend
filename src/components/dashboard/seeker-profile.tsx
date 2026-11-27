@@ -32,7 +32,7 @@ function readFile(file: File) {
 
 export function PersonalProfileEditor({ profile, accountName, email, update, role = "seeker" }: {
   profile: SeekerProfile; accountName: string; email: string; update: (changes: Partial<SeekerProfile>) => void;
-  role?: "seeker" | "employer";
+  role?: "seeker" | "employer" | "admin";
 }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -85,7 +85,7 @@ export function PersonalProfileEditor({ profile, accountName, email, update, rol
 
 function PersonalPhotoEditor({ name, photo, update, role }: {
   name: string; photo?: string; update: (changes: Partial<SeekerProfile>) => void;
-  role: "seeker" | "employer";
+  role: "seeker" | "employer" | "admin";
 }) {
   const [preview, setPreview] = useState<string>();
   const [reading, setReading] = useState(false);

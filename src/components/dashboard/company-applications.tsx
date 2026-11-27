@@ -25,7 +25,7 @@ const fields = [
 type CompanyApplication = {
   _id: string;
   revision: number;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "suspended";
   details: Record<(typeof fields)[number]["name"], string>;
   rejectionReason?: string;
   logoUrl?: string;
@@ -37,6 +37,7 @@ const statusStyle = {
   pending: "bg-amber-50 text-amber-900",
   approved: "bg-emerald-50 text-emerald-900",
   rejected: "bg-red-50 text-red-900",
+  suspended: "bg-red-50 text-red-900",
 };
 const editableProfile = ["website", "description", "industry", "size", "contactName", "contactEmail", "contactPhone"];
 
@@ -103,6 +104,7 @@ export function CompanyApplicationPanel({ title, companyHref, jobsHref, mode = "
           }}>Refresh status</Button>
         )}
         {application?.status === "pending" && <p className="mt-3 text-sm text-slate-600">Your application for {application.details.name} is awaiting admin review.</p>}
+        {application?.status === "suspended" && <p className="mt-3 text-sm text-red-800">This company is suspended. Contact support about restoring access.</p>}
         {application?.status === "approved" && (
           <>
               <p className="mt-3 text-sm text-emerald-800">{application.details.name} has been approved.</p>
@@ -122,7 +124,7 @@ export function CompanyApplicationPanel({ title, companyHref, jobsHref, mode = "
             {application?.status === "pending" ? "View company application" : "Open company application"}
           </Link>
         )}
-        {!isLoading && !loadError && mode === "application" && application?.status !== "pending" && (
+        {!isLoading && !loadError && mode === "application" && (!application || application.status === "approved" || application.status === "rejected") && (
           <form method="post" onSubmit={submitApplication} className="mt-5 space-y-4">
             {application?.status === "approved" && (
               <div className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-950">
@@ -169,22 +171,35 @@ export function CompanyApplicationPanel({ title, companyHref, jobsHref, mode = "
   );
 }
 
-export function AdminCompanyQueue({ overviewHref }: { overviewHref?: string }) {
+export function AdminCompanyQueue({ overviewHref, manageAll = false }: { overviewHref?: string; manageAll?: boolean }) {
   const [applications, setApplications] = useState<CompanyApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeId, setActiveId] = useState("");
   const [error, setError] = useState("");
   const [decisionMessage, setDecisionMessage] = useState("");
   const [refresh, setRefresh] = useState(0);
+  const [filter, setFilter] = useState("all");
+  const visible = filter === "all" ? applications : applications.filter(({ status }) => status === filter);
 
   useEffect(() => {
     const controller = new AbortController();
-    backendRequest<{ applications: CompanyApplication[] }>("/api/admin/company-applications", { signal: controller.signal })
+    backendRequest<{ applications: CompanyApplication[] }>(manageAll ? "/api/admin/company-applications?all=true" : "/api/admin/company-applications", { signal: controller.signal })
       .then(({ applications }) => setApplications(applications))
       .catch((error) => { if (!controller.signal.aborted) setError(backendErrorMessage(error)); })
       .finally(() => { if (!controller.signal.aborted) setIsLoading(false); });
     return () => controller.abort();
-  }, [refresh]);
+  }, [refresh, manageAll]);
+
+  useEffect(() => {
+    if (isLoading || !window.location.hash.startsWith("#company-")) return;
+    try {
+      const target = document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
+      if (target instanceof HTMLDetailsElement) {
+        target.open = true;
+        target.scrollIntoView({ block: "nearest" });
+      }
+    } catch {}
+  }, [isLoading]);
 
   async function review(event: FormEvent<HTMLFormElement>, application: CompanyApplication) {
     event.preventDefault();
@@ -192,7 +207,8 @@ export function AdminCompanyQueue({ overviewHref }: { overviewHref?: string }) {
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
     const status = submitter?.value;
     const reason = String(new FormData(event.currentTarget).get("reason") ?? "").trim();
-    if (status !== "approved" && status !== "rejected") return;
+    if (status !== "approved" && status !== "rejected" && status !== "suspended" && status !== "reactivated") return;
+    if (status === "suspended" && !window.confirm("Suspend this company and hide its live jobs?")) return;
     if (status === "rejected" && !reason) {
       setError("Enter a rejection reason before rejecting the application.");
       return;
@@ -201,11 +217,11 @@ export function AdminCompanyQueue({ overviewHref }: { overviewHref?: string }) {
     setError("");
     setDecisionMessage("");
     try {
-      await backendRequest(`/api/admin/company-applications/${encodeURIComponent(application._id)}`, {
+      const { application: updated } = await backendRequest<{ application: CompanyApplication }>(`/api/admin/company-applications/${encodeURIComponent(application._id)}`, {
         method: "PATCH",
         body: JSON.stringify({ status, reason, revision: application.revision }),
       });
-      setApplications((current) => current.filter((item) => item._id !== application._id));
+      setApplications((current) => manageAll ? current.map((item) => item._id === updated._id ? updated : item) : current.filter((item) => item._id !== application._id));
       setDecisionMessage(`${application.details.name} was ${status}.`);
     } catch (error) {
       setError(backendErrorMessage(error));
@@ -217,7 +233,10 @@ export function AdminCompanyQueue({ overviewHref }: { overviewHref?: string }) {
   return (
     <section id="activity" className={panelStyle}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-bold">Pending company approvals</h2>
+        <h2 className="text-lg font-bold">{manageAll ? "Company applications" : "Pending company approvals"}</h2>
+        {manageAll && <select aria-label="Filter companies by status" value={filter} onChange={(event) => setFilter(event.target.value)} className="min-h-9 rounded-lg border border-slate-200 px-2 text-sm">
+          <option value="all">All statuses</option>{Object.keys(statusStyle).map((status) => <option key={status} value={status}>{status[0].toUpperCase() + status.slice(1)}</option>)}
+        </select>}
         <Button type="button" variant="outline" disabled={isLoading || !!activeId} onClick={() => {
           setError("");
           setIsLoading(true);
@@ -227,17 +246,17 @@ export function AdminCompanyQueue({ overviewHref }: { overviewHref?: string }) {
       {isLoading && <p role="status" className="mt-3 text-sm">Loading applications…</p>}
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
       {decisionMessage && <p role="status" className="mt-3 text-sm text-emerald-800">{decisionMessage}</p>}
-      {!isLoading && !error && applications.length === 0 && <p className="mt-4 text-sm text-slate-600">There are no pending company applications.</p>}
+      {!isLoading && !error && visible.length === 0 && <p className="mt-4 text-sm text-slate-600">{manageAll ? "No companies match this filter." : "There are no pending company applications."}</p>}
       <div className="mt-4 space-y-3">
-        {applications.map((application) => (
+        {visible.map((application) => (
           overviewHref ? (
             <div key={application._id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 p-4">
               <span className="break-all text-sm font-semibold">{application.details.name}</span>
               <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900">Pending</span>
             </div>
           ) : (
-          <details key={application._id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <summary className="cursor-pointer font-semibold [overflow-wrap:anywhere]">{application.details.name}</summary>
+          <details id={`company-${application._id}`} key={application._id} className="scroll-mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <summary className="cursor-pointer font-semibold [overflow-wrap:anywhere]">{application.details.name} <span className={`ml-2 rounded-full px-2 py-1 text-xs font-bold capitalize ${statusStyle[application.status]}`}>{application.status}</span></summary>
             <dl className="my-4 grid gap-3 text-sm sm:grid-cols-2">
               {fields.map(({ name, label }) => (
                 <div key={name}>
@@ -247,13 +266,17 @@ export function AdminCompanyQueue({ overviewHref }: { overviewHref?: string }) {
               ))}
             </dl>
             <form onSubmit={(event) => review(event, application)} className="space-y-3">
-              <label className="block text-sm font-semibold">
+              {application.status === "pending" && <label className="block text-sm font-semibold">
                 Rejection reason (required when rejecting)
                 <textarea name="reason" maxLength={1000} rows={2} className={fieldStyle} />
-              </label>
+              </label>}
               <div className="flex flex-wrap gap-2">
-                <Button type="submit" value="approved" disabled={!!activeId} className="bg-[#007653] hover:bg-[#005c41]">Approve</Button>
-                <Button type="submit" value="rejected" disabled={!!activeId} variant="destructive">Reject</Button>
+                {application.status === "pending" && <>
+                  <Button type="submit" value="approved" disabled={!!activeId} className="bg-[#007653] hover:bg-[#005c41]">Approve</Button>
+                  <Button type="submit" value="rejected" disabled={!!activeId} variant="destructive">Reject</Button>
+                </>}
+                {application.status === "approved" && <Button type="submit" value="suspended" disabled={!!activeId} variant="destructive">Suspend</Button>}
+                {application.status === "suspended" && <Button type="submit" value="reactivated" disabled={!!activeId}>Reactivate</Button>}
               </div>
             </form>
           </details>
