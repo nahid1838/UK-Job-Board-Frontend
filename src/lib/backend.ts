@@ -14,11 +14,13 @@ export class BackendRequestError extends Error {
 }
 
 export async function backendRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   const response = await fetch(backendEndpoint(path), {
     ...options,
     credentials: "include",
     cache: "no-store",
-    headers: options.body ? { "Content-Type": "application/json" } : undefined,
+    headers,
   });
   const data = await response.json();
   if (!response.ok) throw new BackendRequestError(data.message || "The request could not be completed.", response.status);

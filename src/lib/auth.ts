@@ -8,6 +8,12 @@ const db = client.db("UkJobBoardDB");
 
 export const auth = betterAuth({
     user: {
+        ...(authEmailEnabled && {
+            changeEmail: {
+                enabled: true,
+                sendChangeEmailConfirmation: ({ user, url }) => sendAuthEmail(user.email, "Confirm your UK Job Board email change", `Approve the requested email change:\n\n${url}\n\nIf you didn’t request this, ignore this email.`),
+            },
+        }),
         additionalFields: {
             // This records a signup preference. Permissions are assigned separately.
             accountType: {

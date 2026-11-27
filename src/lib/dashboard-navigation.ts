@@ -1,5 +1,5 @@
 import {
-  Activity, BriefcaseBusiness, Building2, ClipboardList, FileText, LayoutDashboard,
+  Activity, Bell, Bookmark, BriefcaseBusiness, Building2, ClipboardList, FileText, LayoutDashboard, Search,
   List, Mail, Settings, UserRound, Users,
 } from "lucide-react";
 import type { DashboardRole } from "./dashboard-access";
@@ -9,6 +9,7 @@ const overview = { slug: "", label: "Dashboard", Icon: LayoutDashboard };
 export const dashboardNavigation = {
   seeker: [
     overview,
+    { slug: "browse-jobs", label: "Browse jobs", Icon: Search },
     { slug: "applications", label: "My applications", Icon: ClipboardList },
     { slug: "profile", label: "My profile", Icon: UserRound },
     { slug: "cv", label: "CV / Resume", Icon: FileText },
@@ -16,6 +17,8 @@ export const dashboardNavigation = {
     { slug: "jobs", label: "Manage jobs", Icon: List },
     { slug: "received-applications", label: "Received applications", Icon: ClipboardList },
     { slug: "settings", label: "Settings", Icon: Settings },
+    { slug: "notifications", label: "Notifications", Icon: Bell },
+    { slug: "saved-jobs", label: "Saved jobs", Icon: Bookmark },
   ],
   employer: [
     overview,

@@ -4,22 +4,15 @@ import { DashboardShell } from "./dashboard-shell";
 import { CategoryManager } from "./category-manager";
 import { JobApplicationsPanel } from "./job-applications-panel";
 import { JobPostingPanel } from "./job-posting-panel";
+import { SeekerWorkspace } from "./seeker-workspace";
+import { authEmailEnabled } from "@/lib/auth-email";
 import { dashboardPaths, getDashboardUser, type DashboardRole } from "@/lib/dashboard-access";
 import { dashboardHref, dashboardNavigation } from "@/lib/dashboard-navigation";
-import { BriefcaseBusiness, Building2, ClipboardList, Clock3, FileCheck2, Users } from "lucide-react";
+import { BriefcaseBusiness, Building2, ClipboardList, Users } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 const dashboardContent = {
-  seeker: {
-    title: "Job Seeker Dashboard",
-    description: "Track your job applications and take the next step in your career.",
-    stats: [
-      { label: "Total applications", Icon: ClipboardList },
-      { label: "In progress", Icon: Clock3 },
-      { label: "Closed", Icon: FileCheck2 },
-    ],
-  },
   employer: {
     title: "Employer Dashboard",
     description: "Manage your company, job listings, and applications.",
@@ -63,25 +56,35 @@ function ActivityPanel({ id, title, message }: { id: string; title: string; mess
 }
 
 const sectionMessages: Record<string, string> = {
-  cv: "CV uploads will be added with the job application workflow.",
   users: "User management will be available when account administration is connected.",
   "email-templates": "Email templates will be available when email delivery is connected.",
   activity: "The activity log will show administrative actions when audit reporting is connected.",
-  jobs: "Job moderation will be available when admin job management is connected.",
 };
 
 export async function DashboardPage({ role: requiredRole, section }: { role: DashboardRole; section: string }) {
   const { user, role } = await getDashboardUser();
   if (role !== requiredRole) redirect(dashboardPaths[role]);
 
+  if (role === "seeker") {
+    return (
+      <SeekerWorkspace section={section} accountName={user.name} email={user.email} verified={user.emailVerified} emailEnabled={authEmailEnabled}>
+        {(section === "become-an-employer" || section === "jobs") && (
+          <CompanyApplicationPanel
+            title="Become an Employer" companyHref={dashboardHref(role, "become-an-employer")} jobsHref={dashboardHref(role, "jobs")}
+            mode={section === "jobs" ? "all" : "application"}
+          />
+        )}
+        {section === "received-applications" && <JobApplicationsPanel role="employer" />}
+      </SeekerWorkspace>
+    );
+  }
+
   const { title, description, stats } = dashboardContent[role];
-  const firstName = user.name.trim().split(/\s+/)[0] || "there";
-  const initial = firstName[0].toUpperCase();
+  const initial = user.name.trim()[0]?.toUpperCase() ?? "U";
   const sectionTitle = dashboardNavigation[role].find(({ slug }) => slug === section)?.label ?? title;
-  const companyHref = dashboardHref(role, role === "seeker" ? "become-an-employer" : "company");
-  const manageJobsHref = dashboardHref(role, "jobs");
-  const postJobHref = dashboardHref(role, role === "seeker" ? "jobs" : "post-a-job");
-  const companyTitle = role === "seeker" ? "Become an Employer" : "Company profile";
+  const companyHref = dashboardHref("employer", "company");
+  const manageJobsHref = dashboardHref("employer", "jobs");
+  const postJobHref = dashboardHref("employer", "post-a-job");
 
   if (section) {
     return (
@@ -94,20 +97,20 @@ export async function DashboardPage({ role: requiredRole, section }: { role: Das
           <CategoryManager />
         ) : role === "admin" && section === "jobs" ? (
           <JobPostingPanel mode="list" admin />
-        ) : section === "applications" || section === "received-applications" ? (
-          <JobApplicationsPanel role={section === "received-applications" ? "employer" : role} />
-        ) : role !== "admin" && ["company", "become-an-employer", "jobs", "post-a-job"].includes(section) ? (
+        ) : section === "applications" ? (
+          <JobApplicationsPanel role={role} />
+        ) : role === "employer" && ["company", "jobs", "post-a-job"].includes(section) ? (
           <>
             <CompanyApplicationPanel
-              title={companyTitle}
+              title="Company profile"
               companyHref={companyHref}
               jobsHref={postJobHref}
-              mode={section === "post-a-job" ? "post" : section === "jobs" ? (role === "seeker" ? "all" : "list") : "application"}
+              mode={section === "post-a-job" ? "post" : section === "jobs" ? "list" : "application"}
             />
             {section === "post-a-job" && (
               <Link href={manageJobsHref} className="mt-4 inline-block text-sm font-semibold text-emerald-800 hover:underline">Manage drafts and publish jobs</Link>
             )}
-            {section === "jobs" && role === "employer" && (
+            {section === "jobs" && (
               <Link href={postJobHref} className="mt-4 inline-block text-sm font-semibold text-emerald-800 hover:underline">Post a job</Link>
             )}
           </>
@@ -133,9 +136,8 @@ export async function DashboardPage({ role: requiredRole, section }: { role: Das
     <DashboardShell role={role} name={user.name} section={section}>
       <header className="flex items-start justify-between gap-4 border-b border-slate-200/80 pb-6">
         <div className="min-w-0">
-          {role === "seeker" && <p className="mb-1 text-sm font-semibold text-emerald-800">{title}</p>}
           <h1 className="break-words text-3xl font-extrabold tracking-tight sm:text-4xl">
-            {role === "seeker" ? `Welcome back, ${firstName}!` : title}
+            {title}
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">{description}</p>
         </div>
@@ -156,7 +158,7 @@ export async function DashboardPage({ role: requiredRole, section }: { role: Das
         ))}
       </dl>
 
-      {role !== "admin" && <CompanyApplicationPanel title={companyTitle} companyHref={companyHref} jobsHref={postJobHref} mode="overview" />}
+      {role === "employer" && <CompanyApplicationPanel title="Company profile" companyHref={companyHref} jobsHref={postJobHref} mode="overview" />}
 
       <div className={`mt-6 grid gap-4 ${role === "admin" ? "xl:grid-cols-2 xl:items-start" : ""}`}>
         {role === "admin" && <AdminCompanyQueue overviewHref={dashboardHref(role, "companies")} />}

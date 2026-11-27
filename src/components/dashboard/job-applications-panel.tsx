@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { backendEndpoint, backendErrorMessage, backendRequest } from "@/lib/backend";
 import { useEffect, useState } from "react";
 
-type Status = "new" | "forwarded" | "not-suitable";
+type Status = "new" | "shortlisted" | "forwarded" | "not-suitable";
 type Application = {
   _id: string;
   jobTitle: string;
@@ -25,6 +25,7 @@ const paths = {
 };
 const labels = {
   new: { label: "New", style: "bg-blue-50 text-blue-800" },
+  shortlisted: { label: "Shortlisted", style: "bg-emerald-50 text-emerald-800" },
   forwarded: { label: "Forwarded", style: "bg-emerald-50 text-emerald-800" },
   "not-suitable": { label: "Not suitable", style: "bg-slate-100 text-slate-700" },
 };
@@ -53,7 +54,7 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
     return () => controller.abort();
   }, [refresh, role]);
 
-  async function review(id: string, status: "forwarded" | "not-suitable") {
+  async function review(id: string, status: "forwarded" | "not-suitable" | "shortlisted") {
     if (activeId) return;
     setActiveId(id);
     setError("");
@@ -64,7 +65,7 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
         body: JSON.stringify({ status }),
       });
       setApplications((current) => current.map((item) => item._id === id ? { ...item, status } : item));
-      setNotice(status === "forwarded" ? "Application forwarded to the employer." : "Application marked as not suitable.");
+      setNotice(status === "forwarded" ? "Application forwarded to the employer." : status === "shortlisted" ? "Applicant shortlisted." : "Application marked as not suitable.");
     } catch (error) {
       setError(backendErrorMessage(error));
     } finally {
@@ -111,8 +112,9 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
                     <div className="sm:col-span-2"><dt className="font-semibold">Cover letter</dt><dd className="whitespace-pre-wrap break-words">{application.coverLetter || "None provided."}</dd></div>
                   </dl>
                   <a href={backendEndpoint(`/api/job-applications/${encodeURIComponent(application._id)}/cv`).href} className="mt-3 inline-block font-semibold text-emerald-800 underline">Download CV</a>
-                  {role === "admin" && application.status === "new" && (
+                  {role === "admin" && (application.status === "new" || application.status === "shortlisted") && (
                     <div className="mt-4 flex flex-wrap gap-2">
+                      {application.status === "new" && <Button type="button" variant="outline" disabled={!!activeId} onClick={() => review(application._id, "shortlisted")}>Shortlist</Button>}
                       <Button type="button" disabled={!!activeId} onClick={() => review(application._id, "forwarded")} className="bg-[#007653] hover:bg-[#005c41]">Forward to employer</Button>
                       <Button type="button" variant="outline" disabled={!!activeId} onClick={() => review(application._id, "not-suitable")}>Mark not suitable</Button>
                     </div>

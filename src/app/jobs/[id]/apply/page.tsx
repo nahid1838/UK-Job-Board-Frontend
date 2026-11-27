@@ -3,6 +3,7 @@ import { Navbar } from "@/components/shared/navbar";
 import { BackendRequestError, backendRequest } from "@/lib/backend";
 import { getDashboardUser } from "@/lib/dashboard-access";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
@@ -18,7 +19,18 @@ async function ApplyContent({ params }: ApplyPageProps) {
 
   let job: Job | undefined;
   let message = "";
+  let profile: { name?: string; phone?: string; cvType?: string } = {};
   if (role === "seeker") {
+    const cookie = (await headers()).get("cookie");
+    if (cookie) {
+      try {
+        ({ profile } = await backendRequest<{ profile: typeof profile }>("/api/seeker/profile", {
+          headers: { cookie }, redirect: "error", signal: AbortSignal.timeout(3500),
+        }));
+      } catch {
+        // The form can still be filled in manually if the profile cannot be loaded.
+      }
+    }
     try {
       ({ job } = await backendRequest<{ job: Job }>(`/api/jobs/${id}`, { signal: AbortSignal.timeout(5000) }));
     } catch (error) {
@@ -37,7 +49,7 @@ async function ApplyContent({ params }: ApplyPageProps) {
       {job ? (
         <>
           <p className="mt-2 text-slate-600">{job.companyName} · {job.location}</p>
-          <JobApplicationForm jobId={job._id} name={user.name} email={user.email} />
+          <JobApplicationForm jobId={job._id} name={profile.name || user.name} email={user.email} phone={profile.phone} hasSavedCv={Boolean(profile.cvType)} />
         </>
       ) : <p className="mt-3 text-slate-700">{message}</p>}
     </section>

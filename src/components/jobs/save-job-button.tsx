@@ -6,7 +6,7 @@ import { useSyncExternalStore } from "react";
 const key = "uk-job-board-saved-jobs";
 const eventName = "uk-job-board-saved-jobs-changed";
 
-function readSavedJobs(): string[] {
+export function readSavedJobs(): string[] {
   try {
     const saved = JSON.parse(localStorage.getItem(key) ?? "[]");
     return Array.isArray(saved) ? saved.filter((id) => typeof id === "string") : [];
@@ -15,7 +15,7 @@ function readSavedJobs(): string[] {
   }
 }
 
-function subscribe(update: () => void) {
+export function subscribeSavedJobs(update: () => void) {
   window.addEventListener("storage", update);
   window.addEventListener(eventName, update);
   return () => {
@@ -25,7 +25,7 @@ function subscribe(update: () => void) {
 }
 
 export function SaveJobButton({ id }: { id: string }) {
-  const saved = useSyncExternalStore(subscribe, () => readSavedJobs().includes(id), () => false);
+  const saved = useSyncExternalStore(subscribeSavedJobs, () => readSavedJobs().includes(id), () => false);
 
   function toggle() {
     const jobs = readSavedJobs();

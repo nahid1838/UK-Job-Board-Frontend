@@ -16,10 +16,11 @@ function readCv(file: File) {
   });
 }
 
-export function JobApplicationForm({ jobId, name, email }: { jobId: string; name: string; email: string }) {
+export function JobApplicationForm({ jobId, name, email, phone, hasSavedCv }: { jobId: string; name: string; email: string; phone?: string; hasSavedCv?: boolean }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [useSavedCv, setUseSavedCv] = useState(false);
 
   async function submitApplication(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,7 +29,7 @@ export function JobApplicationForm({ jobId, name, email }: { jobId: string; name
     const cv = fields.get("cv");
     setError("");
 
-    if (!(cv instanceof File) || !cv.size || cv.size > 5 * 1024 * 1024 || !/\.(pdf|docx)$/i.test(cv.name)) {
+    if (!useSavedCv && (!(cv instanceof File) || !cv.size || cv.size > 5 * 1024 * 1024 || !/\.(pdf|docx)$/i.test(cv.name))) {
       setError("Choose a PDF or DOCX CV up to 5 MB.");
       return;
     }
@@ -44,7 +45,7 @@ export function JobApplicationForm({ jobId, name, email }: { jobId: string; name
           phone: fields.get("phone"),
           coverLetter: fields.get("coverLetter"),
           acceptedConsent: fields.has("acceptedConsent"),
-          cvBase64: await readCv(cv),
+          ...(useSavedCv ? { useSavedCv: true } : { cvBase64: cv instanceof File ? await readCv(cv) : "" }),
         }),
       });
       setSubmitted(true);
@@ -75,12 +76,15 @@ export function JobApplicationForm({ jobId, name, email }: { jobId: string; name
           <input name="email" type="email" maxLength={254} defaultValue={email} autoComplete="email" required className={fieldStyle} />
         </label>
         <label className="text-sm font-semibold">Phone
-          <input name="phone" type="tel" maxLength={40} autoComplete="tel" required className={fieldStyle} />
+          <input name="phone" type="tel" maxLength={40} defaultValue={phone} autoComplete="tel" required className={fieldStyle} />
         </label>
-        <label className="min-w-0 text-sm font-semibold">CV
-          <input name="cv" type="file" accept=".pdf,.docx" required aria-describedby="cv-help" className={fieldStyle} />
-          <span id="cv-help" className="mt-1 block font-normal text-slate-600">PDF or DOCX, up to 5 MB.</span>
-        </label>
+        <div className="min-w-0">
+          <label className="block text-sm font-semibold">CV
+            <input name="cv" type="file" accept=".pdf,.docx" required={!useSavedCv} disabled={useSavedCv} aria-describedby="cv-help" className={fieldStyle} />
+            <span id="cv-help" className="mt-1 block font-normal text-slate-600">PDF or DOCX, up to 5 MB.</span>
+          </label>
+          {hasSavedCv && <label className="mt-3 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={useSavedCv} onChange={(event) => setUseSavedCv(event.target.checked)} className="size-4 accent-emerald-700" /> Use the CV saved to my profile</label>}
+        </div>
       </div>
       <label className="block text-sm font-semibold">Cover letter (optional)
         <textarea name="coverLetter" rows={5} maxLength={4000} className={fieldStyle} />
