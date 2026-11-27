@@ -38,18 +38,21 @@ const statusStyle = {
   approved: "bg-emerald-50 text-emerald-900",
   rejected: "bg-red-50 text-red-900",
 };
+const editableProfile = ["website", "description", "industry", "size", "contactName", "contactEmail", "contactPhone"];
 
-export function CompanyApplicationPanel({ title, companyHref, jobsHref, mode = "application" }: {
+export function CompanyApplicationPanel({ title, companyHref, jobsHref, mode = "application", onCompanyChange }: {
   title: string;
   companyHref: string;
   jobsHref: string;
-  mode?: "application" | "overview" | "all" | "post" | "list";
+  mode?: "application" | "overview" | "all" | "post" | "list" | "featured";
+  onCompanyChange?: () => void;
 }) {
   const [application, setApplication] = useState<CompanyApplication | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [notice, setNotice] = useState("");
   const [refresh, setRefresh] = useState(0);
 
   useEffect(() => {
@@ -66,13 +69,16 @@ export function CompanyApplicationPanel({ title, companyHref, jobsHref, mode = "
     if (isSaving) return;
     setIsSaving(true);
     setSaveError("");
+    setNotice("");
     const form = new FormData(event.currentTarget);
     try {
-      const { application } = await backendRequest<{ application: CompanyApplication }>("/api/company-application", {
-        method: "POST",
+      const { application: savedApplication } = await backendRequest<{ application: CompanyApplication }>("/api/company-application", {
+        method: application?.status === "approved" ? "PATCH" : "POST",
         body: JSON.stringify({ ...Object.fromEntries(form), acceptedTerms: form.has("acceptedTerms") }),
       });
-      setApplication(application);
+      setApplication((current) => savedApplication.logoUrl ? savedApplication : { ...savedApplication, logoUrl: current?.logoUrl });
+      setNotice(savedApplication.status === "approved" ? "Company profile saved." : "Company application submitted.");
+      onCompanyChange?.();
     } catch (error) {
       setSaveError(backendErrorMessage(error));
     } finally {
@@ -100,7 +106,7 @@ export function CompanyApplicationPanel({ title, companyHref, jobsHref, mode = "
         {application?.status === "approved" && (
           <>
               <p className="mt-3 text-sm text-emerald-800">{application.details.name} has been approved.</p>
-              {mode === "application" && <CompanyLogoForm name={application.details.name} currentLogo={application.logoUrl} />}
+              {mode === "application" && <CompanyLogoForm name={application.details.name} currentLogo={application.logoUrl} onSaved={onCompanyChange} />}
             {mode === "application" || mode === "overview" ? (
               <Link href={jobsHref} className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-[#007653] px-4 text-sm font-semibold text-white hover:bg-[#005c41]">Post a job</Link>
             ) : <JobPostingPanel mode={mode} />}
@@ -116,10 +122,18 @@ export function CompanyApplicationPanel({ title, companyHref, jobsHref, mode = "
             {application?.status === "pending" ? "View company application" : "Open company application"}
           </Link>
         )}
-        {!isLoading && !loadError && mode === "application" && (!application || application.status === "rejected") && (
-          <form onSubmit={submitApplication} className="mt-5 space-y-4">
+        {!isLoading && !loadError && mode === "application" && application?.status !== "pending" && (
+          <form method="post" onSubmit={submitApplication} className="mt-5 space-y-4">
+            {application?.status === "approved" && (
+              <div className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-950">
+                <h3 className="font-bold">{application.details.name}</h3>
+                <p className="mt-1">{application.details.address}, {application.details.town}, {application.details.postcode}</p>
+                {application.details.registrationNumber && <p className="mt-1">Companies House number: {application.details.registrationNumber}</p>}
+                <p className="mt-1">Contact support to change registered company details.</p>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
-              {fields.map((field) => (
+              {fields.filter((field) => application?.status !== "approved" || editableProfile.includes(field.name)).map((field) => (
                 <label key={field.name} className={`block text-sm font-semibold ${field.name === "description" ? "sm:col-span-2" : ""}`}>
                   {field.label}
                   {field.name === "size" ? (
@@ -136,16 +150,17 @@ export function CompanyApplicationPanel({ title, companyHref, jobsHref, mode = "
                 </label>
               ))}
             </div>
-            <label className="flex items-start gap-2 text-sm text-slate-700">
+            {application?.status !== "approved" && <label className="flex items-start gap-2 text-sm text-slate-700">
               <input type="checkbox" name="acceptedTerms" required className="mt-0.5 size-4 accent-emerald-700" />
               I accept the Terms and Conditions and Privacy Policy.
-            </label>
+            </label>}
             {saveError && <p role="alert" className="text-sm text-red-700">{saveError}</p>}
             <Button type="submit" disabled={isSaving} className="min-h-11 bg-[#007653] hover:bg-[#005c41]">
-              {isSaving ? "Submitting…" : application ? "Resubmit application" : "Submit application"}
+              {isSaving ? "Saving…" : application?.status === "approved" ? "Save company profile" : application ? "Resubmit application" : "Submit application"}
             </Button>
           </form>
         )}
+        {notice && <p role="status" className="mt-3 text-sm font-semibold text-emerald-800">{notice}</p>}
       </section>
       {mode === "overview" && !isLoading && application?.status === "approved" && (
         <JobPostingPanel mode="recent" />

@@ -5,7 +5,7 @@ import { backendErrorMessage, backendRequest } from "@/lib/backend";
 import { useState, type FormEvent } from "react";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 
-export function CompanyLogoForm({ name, currentLogo }: { name: string; currentLogo?: string }) {
+export function CompanyLogoForm({ name, currentLogo, onSaved }: { name: string; currentLogo?: string; onSaved?: () => void }) {
   const [isSaving, setIsSaving] = useState(false);
   const [logo, setLogo] = useState("");
   const [error, setError] = useState("");
@@ -32,6 +32,7 @@ export function CompanyLogoForm({ name, currentLogo }: { name: string; currentLo
         method: "PUT", body: JSON.stringify({ image }),
       });
       setLogo(`${logoUrl}?v=${Date.now()}`);
+      onSaved?.();
       form.reset();
     } catch (error) {
       setError(backendErrorMessage(error));

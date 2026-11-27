@@ -4,6 +4,7 @@ import { DashboardShell } from "./dashboard-shell";
 import { CategoryManager } from "./category-manager";
 import { JobApplicationsPanel } from "./job-applications-panel";
 import { JobPostingPanel } from "./job-posting-panel";
+import { EmployerWorkspace } from "./employer-workspace";
 import { SeekerWorkspace } from "./seeker-workspace";
 import { authEmailEnabled } from "@/lib/auth-email";
 import { dashboardPaths, getDashboardUser, type DashboardRole } from "@/lib/dashboard-access";
@@ -13,15 +14,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 const dashboardContent = {
-  employer: {
-    title: "Employer Dashboard",
-    description: "Manage your company, job listings, and applications.",
-    stats: [
-      { label: "Total jobs", Icon: BriefcaseBusiness },
-      { label: "Applications", Icon: ClipboardList },
-      { label: "Company status", Icon: Building2 },
-    ],
-  },
   admin: {
     title: "Admin Dashboard",
     description: "Review companies and keep track of activity across the job board.",
@@ -79,12 +71,13 @@ export async function DashboardPage({ role: requiredRole, section }: { role: Das
     );
   }
 
+  if (role === "employer") {
+    return <EmployerWorkspace key={section} section={section} accountName={user.name} email={user.email} verified={user.emailVerified} emailEnabled={authEmailEnabled} />;
+  }
+
   const { title, description, stats } = dashboardContent[role];
   const initial = user.name.trim()[0]?.toUpperCase() ?? "U";
   const sectionTitle = dashboardNavigation[role].find(({ slug }) => slug === section)?.label ?? title;
-  const companyHref = dashboardHref("employer", "company");
-  const manageJobsHref = dashboardHref("employer", "jobs");
-  const postJobHref = dashboardHref("employer", "post-a-job");
 
   if (section) {
     return (
@@ -99,21 +92,6 @@ export async function DashboardPage({ role: requiredRole, section }: { role: Das
           <JobPostingPanel mode="list" admin />
         ) : section === "applications" ? (
           <JobApplicationsPanel role={role} />
-        ) : role === "employer" && ["company", "jobs", "post-a-job"].includes(section) ? (
-          <>
-            <CompanyApplicationPanel
-              title="Company profile"
-              companyHref={companyHref}
-              jobsHref={postJobHref}
-              mode={section === "post-a-job" ? "post" : section === "jobs" ? "list" : "application"}
-            />
-            {section === "post-a-job" && (
-              <Link href={manageJobsHref} className="mt-4 inline-block text-sm font-semibold text-emerald-800 hover:underline">Manage drafts and publish jobs</Link>
-            )}
-            {section === "jobs" && (
-              <Link href={postJobHref} className="mt-4 inline-block text-sm font-semibold text-emerald-800 hover:underline">Post a job</Link>
-            )}
-          </>
         ) : section === "profile" || section === "settings" ? (
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-lg font-bold">{role === "admin" ? "Signed-in administrator" : "Account details"}</h2>
@@ -158,11 +136,9 @@ export async function DashboardPage({ role: requiredRole, section }: { role: Das
         ))}
       </dl>
 
-      {role === "employer" && <CompanyApplicationPanel title="Company profile" companyHref={companyHref} jobsHref={postJobHref} mode="overview" />}
-
       <div className={`mt-6 grid gap-4 ${role === "admin" ? "xl:grid-cols-2 xl:items-start" : ""}`}>
         {role === "admin" && <AdminCompanyQueue overviewHref={dashboardHref(role, "companies")} />}
-        {role !== "employer" && <JobApplicationsPanel role={role} recent />}
+        <JobApplicationsPanel role={role} recent />
       </div>
 
       {process.env.NODE_ENV === "development" && <BackendAccessCheck />}

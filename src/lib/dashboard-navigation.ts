@@ -1,6 +1,6 @@
 import {
   Activity, Bell, Bookmark, BriefcaseBusiness, Building2, ClipboardList, FileText, LayoutDashboard, Search,
-  List, Mail, Settings, UserRound, Users,
+  List, Mail, Plus, Settings, Star, UserRound, Users,
 } from "lucide-react";
 import type { DashboardRole } from "./dashboard-access";
 
@@ -22,11 +22,14 @@ export const dashboardNavigation = {
   ],
   employer: [
     overview,
-    { slug: "post-a-job", label: "Post a job", Icon: BriefcaseBusiness },
-    { slug: "jobs", label: "Manage jobs", Icon: List },
+    { slug: "company", label: "My Company", Icon: Building2 },
+    { slug: "profile", label: "My Profile", Icon: UserRound },
+    { slug: "post-a-job", label: "Post a Job", Icon: Plus },
+    { slug: "jobs", label: "Manage Jobs", Icon: BriefcaseBusiness },
     { slug: "applications", label: "Applications", Icon: ClipboardList },
-    { slug: "company", label: "Company profile", Icon: Building2 },
+    { slug: "featured", label: "Hot / Featured Jobs", Icon: Star },
     { slug: "settings", label: "Settings", Icon: Settings },
+    { slug: "notifications", label: "Notifications", Icon: Bell },
   ],
   admin: [
     overview,

@@ -11,7 +11,7 @@ import { ArrowRight, Bell, BriefcaseBusiness, Camera, Check, CircleCheck, Clipbo
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { SeekerAvatar, SeekerCvEditor, SeekerEmailEditor, SeekerProfileEditor, seekerPanel, type SeekerProfile } from "./seeker-profile";
+import { AccountEmailEditor, PersonalProfileEditor, SeekerAvatar, SeekerCvEditor, seekerPanel, type SeekerProfile } from "./seeker-profile";
 import parliamentPhoto from "../../../public/images/london-parliament-panorama.png";
 import welcomeArt from "../../../public/images/seeker-dashboard-welcome.png";
 import { SeekerBrowseJobs } from "./seeker-browse-jobs";
@@ -291,7 +291,7 @@ export function SeekerWorkspace({ section, accountName, email, verified, emailEn
           {section === "applications" && (applicationError ? <p role="alert" className={seekerPanel}>{applicationError}</p> : applicationsReady ? <ApplicationsTable applications={applications} /> : <p role="status" className={seekerPanel}>Loading applications…</p>)}
           {section === "saved-jobs" && <SavedJobs snapshot={savedSnapshot} />}
           {(section === "profile" || section === "cv") && (profileError ? <p role="alert" className={seekerPanel}>{profileError}</p> : !profileReady ? <p role="status" className={seekerPanel}>Loading profile…</p> : section === "profile"
-            ? <SeekerProfileEditor profile={profile} accountName={accountName} email={email} update={(changes) => setProfile((current) => ({ ...current, ...changes }))} />
+            ? <PersonalProfileEditor profile={profile} accountName={accountName} email={email} update={(changes) => setProfile((current) => ({ ...current, ...changes }))} />
             : <SeekerCvEditor cvType={profile.cvType} update={(cvType) => setProfile((current) => ({ ...current, cvType }))} />)}
           {section === "profile" && (
             <nav aria-label="Profile tools" className={`mt-4 ${seekerPanel}`}>
@@ -306,7 +306,7 @@ export function SeekerWorkspace({ section, accountName, email, verified, emailEn
           {section === "settings" && <section className={seekerPanel}>
             <h2 className="text-lg font-extrabold">Account security</h2><p className="mt-2 text-sm break-all text-slate-600">{email} · {verified ? "Verified" : "Awaiting verification"}</p>
             <div className="mt-3 flex flex-wrap gap-4"><Link href="/forgot-password" className={textLink}>Reset password</Link>{!verified && <Link href="/verify-email" className={textLink}>Verify email</Link>}<Link href={href("profile")} className={textLink}>Edit profile</Link></div>
-            {emailEnabled && <SeekerEmailEditor verified={verified} />}
+            {emailEnabled && <AccountEmailEditor verified={verified} />}
           </section>}
           {section === "notifications" && <section className={seekerPanel}>
             <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-extrabold">Application updates</h2>{unread > 0 && <button type="button" onClick={markRead} disabled={markingRead} className={textLink}>{markingRead ? "Marking…" : "Mark all as read"}</button>}</div>

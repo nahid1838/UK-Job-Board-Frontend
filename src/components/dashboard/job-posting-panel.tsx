@@ -23,7 +23,7 @@ const fields = [
   { name: "experience", label: "Experience level", options: ["Entry", "Mid", "Senior", "Lead", "Any level"] },
 ] as const;
 
-export function JobPostingPanel({ mode = "all", admin = false }: { mode?: "all" | "post" | "list" | "recent"; admin?: boolean }) {
+export function JobPostingPanel({ mode = "all", admin = false }: { mode?: "all" | "post" | "list" | "recent" | "featured"; admin?: boolean }) {
   const [jobs, setJobs] = useState<EmployerJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -33,7 +33,10 @@ export function JobPostingPanel({ mode = "all", admin = false }: { mode?: "all" 
   const [categories, setCategories] = useState<Category[]>([]);
   const [editing, setEditing] = useState<EmployerJob | null>(null);
   const canPost = mode === "post" || mode === "all";
-  const editingAvailable = mode !== "recent";
+  const editingAvailable = mode !== "recent" && mode !== "featured";
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const shownJobs = mode === "featured" ? jobs.filter((job) => job.status === "live" && job.closingDate >= today)
+    : mode === "recent" ? jobs.slice(0, 3) : jobs;
   const jobsPath = admin ? "/api/admin/jobs" : "/api/employer/jobs";
 
   useEffect(() => {
@@ -52,6 +55,12 @@ export function JobPostingPanel({ mode = "all", admin = false }: { mode?: "all" 
       .finally(() => { if (!controller.signal.aborted) setIsLoading(false); });
     return () => controller.abort();
   }, [editingAvailable, jobsPath]);
+
+  useEffect(() => {
+    if (!isLoading && window.location.hash.startsWith("#job-")) {
+      document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ block: "nearest" });
+    }
+  }, [isLoading]);
 
   async function saveDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -184,20 +193,23 @@ export function JobPostingPanel({ mode = "all", admin = false }: { mode?: "all" 
           {notice && <p role="status" className="mt-4 text-sm text-emerald-800">{notice}</p>}
           {mode !== "post" && <div className={mode === "all" ? "mt-6 border-t border-slate-200 pt-5" : ""}>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-bold">{mode === "recent" ? "Recent jobs" : admin ? "Job listings" : "Your jobs"}</h3>
+              <h3 className="font-bold">{mode === "featured" ? "Feature a live job" : mode === "recent" ? "Recent jobs" : admin ? "Job listings" : "Your jobs"}</h3>
               <Link href="/jobs" className="text-sm font-semibold text-emerald-800 hover:underline">View public jobs</Link>
             </div>
-            {jobs.length === 0 && <p className="mt-3 text-sm text-slate-600">Your saved drafts will appear here.</p>}
+            {mode === "featured" && <p className="mt-2 text-sm text-slate-600">Mark a live job as Hot to feature it on the public job board.</p>}
+            {shownJobs.length === 0 && <p className="mt-3 text-sm text-slate-600">{mode === "featured" ? "Publish a job before featuring it." : "Your saved drafts will appear here."}</p>}
             <ul className="mt-3 space-y-2">
-              {(mode === "recent" ? jobs.slice(0, 3) : jobs).map((job) => {
+              {shownJobs.map((job) => {
                 const isFeatured = Boolean(job.featuredUntil && new Date(job.featuredUntil) > new Date());
                 return (
-                <li key={job._id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-3">
+                <li id={`job-${job._id}`} key={job._id} className="flex scroll-mt-4 flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-3">
                   <div className="min-w-0">
                     <p className="font-semibold break-words">{job.title}</p>
                     <p className="text-sm text-slate-600">{job.location} · {job.status === "live" ? "Live" : job.status === "closed" ? "Closed" : "Draft"}{isFeatured ? " · Hot" : ""}</p>
+                    {mode === "featured" && isFeatured && <p className="mt-1 text-xs text-emerald-800">Featured until {new Date(job.featuredUntil!).toLocaleDateString("en-GB", { timeZone: "Europe/London" })}</p>}
                   </div>
                   {mode !== "recent" && <div className="flex flex-wrap gap-2">
+                  {mode !== "featured" && <>
                   {job.status === "draft" && !admin && (
                     <Button type="button" variant="outline" disabled={!!pendingAction} onClick={() => publishJob(job._id)} className="min-h-10">
                       {pendingAction === job._id ? "Publishing…" : "Publish"}
@@ -209,9 +221,10 @@ export function JobPostingPanel({ mode = "all", admin = false }: { mode?: "all" 
                   }}>Edit</Button>
                   {job.status === "live" && <Button type="button" variant="outline" disabled={!!pendingAction} onClick={() => manage(job._id, "close")}>Close</Button>}
                   {job.status === "closed" && !admin && <Button type="button" variant="outline" disabled={!!pendingAction} onClick={() => manage(job._id, "reopen")}>Reopen</Button>}
-                  {job.status === "live" && <Button type="button" variant="outline" disabled={!!pendingAction} onClick={() => manage(job._id, "feature", !isFeatured)}>{isFeatured ? "Remove Hot" : "Mark Hot"}</Button>}
                   {!admin && <Button type="button" variant="outline" disabled={!!pendingAction} onClick={() => manage(job._id, "duplicate")}>Duplicate</Button>}
                   <Button type="button" variant="destructive" disabled={!!pendingAction} onClick={() => manage(job._id, "delete")}>Delete</Button>
+                  </>}
+                  {job.status === "live" && job.closingDate >= today && <Button type="button" variant="outline" disabled={!!pendingAction} onClick={() => manage(job._id, "feature", !isFeatured)}>{isFeatured ? "Remove Hot" : "Mark Hot"}</Button>}
                   </div>}
                 </li>
                 );

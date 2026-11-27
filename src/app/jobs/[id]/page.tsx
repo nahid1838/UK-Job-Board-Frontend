@@ -2,6 +2,7 @@ import { JobCard, formatSalary } from "@/components/jobs/job-card";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import { SaveJobButton } from "@/components/jobs/save-job-button";
 import { ShareJobButton } from "@/components/jobs/share-job-button";
+import { JobViewTracker } from "@/components/jobs/job-view-tracker";
 import { Footer } from "@/components/shared/footer";
 import { Navbar } from "@/components/shared/navbar";
 import { BackendRequestError } from "@/lib/backend";
@@ -45,6 +46,7 @@ async function JobDetails({ params }: JobPageProps) {
   };
   return (
     <>
+      <JobViewTracker id={job._id} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }} />
       <Link href="/jobs" className="text-sm font-semibold text-emerald-800 hover:underline">All jobs</Link>
       <article className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 sm:p-9">

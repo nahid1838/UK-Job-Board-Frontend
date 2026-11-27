@@ -30,8 +30,9 @@ function readFile(file: File) {
   });
 }
 
-export function SeekerProfileEditor({ profile, accountName, email, update }: {
+export function PersonalProfileEditor({ profile, accountName, email, update, role = "seeker" }: {
   profile: SeekerProfile; accountName: string; email: string; update: (changes: Partial<SeekerProfile>) => void;
+  role?: "seeker" | "employer";
 }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -52,7 +53,7 @@ export function SeekerProfileEditor({ profile, accountName, email, update }: {
         headline: String(values.get("headline")).trim(),
         bio: String(values.get("bio")).trim(),
       };
-      await backendRequest("/api/seeker/profile", { method: "PATCH", body: JSON.stringify(changed) });
+      await backendRequest(`/api/${role}/profile`, { method: "PATCH", body: JSON.stringify(changed) });
       update(changed);
       setNotice("Profile saved.");
     } catch (error) {
@@ -64,10 +65,10 @@ export function SeekerProfileEditor({ profile, accountName, email, update }: {
 
   return (
     <div className="space-y-4">
-      <SeekerPhotoEditor name={profile.name || accountName} photo={profile.photo} update={update} />
+      <PersonalPhotoEditor name={profile.name || accountName} photo={profile.photo} update={update} role={role} />
       <form method="post" onSubmit={save} className={`${seekerPanel} space-y-5`}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm font-semibold">Full name<input name="name" required maxLength={120} defaultValue={profile.name ?? accountName} autoComplete="name" className={fieldStyle} /></label>
+          <label className="text-sm font-semibold">{role === "employer" ? "Display name" : "Full name"}<input name="name" required maxLength={120} defaultValue={profile.name ?? accountName} autoComplete="name" className={fieldStyle} /></label>
           <label className="text-sm font-semibold">Sign-in email<input value={email} readOnly className={`${fieldStyle} bg-slate-50`} /></label>
           <label className="text-sm font-semibold">Phone<input name="phone" type="tel" maxLength={40} defaultValue={profile.phone} autoComplete="tel" className={fieldStyle} /></label>
           <label className="text-sm font-semibold">UK location<input name="location" maxLength={120} defaultValue={profile.location} autoComplete="address-level2" className={fieldStyle} /></label>
@@ -82,8 +83,9 @@ export function SeekerProfileEditor({ profile, accountName, email, update }: {
   );
 }
 
-function SeekerPhotoEditor({ name, photo, update }: {
+function PersonalPhotoEditor({ name, photo, update, role }: {
   name: string; photo?: string; update: (changes: Partial<SeekerProfile>) => void;
+  role: "seeker" | "employer";
 }) {
   const [preview, setPreview] = useState<string>();
   const [reading, setReading] = useState(false);
@@ -115,7 +117,7 @@ function SeekerPhotoEditor({ name, photo, update }: {
     setSaving(true);
     setError("");
     try {
-      await backendRequest("/api/seeker/profile", {
+      await backendRequest(`/api/${role}/profile`, {
         method: "PATCH", body: JSON.stringify({ photo: preview }),
       });
       update({ photo: preview });
@@ -224,7 +226,7 @@ export function SeekerCvEditor({ cvType, update }: { cvType?: SeekerProfile["cvT
   );
 }
 
-export function SeekerEmailEditor({ verified }: { verified: boolean }) {
+export function AccountEmailEditor({ verified, callbackURL = "/dashboard/seeker/settings" }: { verified: boolean; callbackURL?: string }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -238,7 +240,7 @@ export function SeekerEmailEditor({ verified }: { verified: boolean }) {
     setError("");
     setNotice("");
     try {
-      const result = await authClient.changeEmail({ newEmail, callbackURL: "/dashboard/seeker/settings" });
+      const result = await authClient.changeEmail({ newEmail, callbackURL });
       if (result.error) throw new Error(result.error.message || "Could not start the email change.");
       setNotice(verified
         ? "If the new address is available, you’ll receive instructions at your current email first."

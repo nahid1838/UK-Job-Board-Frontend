@@ -5,6 +5,7 @@ import { backendEndpoint, backendErrorMessage, backendRequest } from "@/lib/back
 import { useEffect, useState } from "react";
 
 type Status = "new" | "shortlisted" | "forwarded" | "not-suitable";
+type EmployerStatus = "reviewed" | "shortlisted" | "not-suitable";
 type Application = {
   _id: string;
   jobTitle: string;
@@ -12,6 +13,7 @@ type Application = {
   status: Status;
   createdAt: string;
   forwardedAt?: string;
+  employerStatus?: EmployerStatus;
   name?: string;
   email?: string;
   phone?: string;
@@ -30,6 +32,11 @@ const labels = {
   "not-suitable": { label: "Not suitable", style: "bg-slate-100 text-slate-700" },
 };
 const titles = { seeker: "My applications", admin: "Applications inbox", employer: "Forwarded applications" };
+const employerLabels = {
+  reviewed: { label: "Reviewed", style: "bg-blue-50 text-blue-800" },
+  shortlisted: labels.shortlisted,
+  "not-suitable": { label: "Not suitable", style: "bg-rose-50 text-rose-800" },
+};
 const emptyMessages = {
   seeker: "Jobs you apply for will appear here.",
   admin: "There are no job applications to review yet.",
@@ -54,6 +61,20 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
     return () => controller.abort();
   }, [refresh, role]);
 
+  useEffect(() => {
+    if (isLoading || !window.location.hash.startsWith("#application-")) return;
+    try {
+      const target = document.getElementById(decodeURIComponent(window.location.hash.slice(1)));
+      if (target) {
+        const details = target.querySelector("details");
+        if (details) details.open = true;
+        target.scrollIntoView({ block: "nearest" });
+      }
+    } catch {
+      // Ignore an invalid fragment.
+    }
+  }, [isLoading]);
+
   async function review(id: string, status: "forwarded" | "not-suitable" | "shortlisted") {
     if (activeId) return;
     setActiveId(id);
@@ -66,6 +87,24 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
       });
       setApplications((current) => current.map((item) => item._id === id ? { ...item, status } : item));
       setNotice(status === "forwarded" ? "Application forwarded to the employer." : status === "shortlisted" ? "Applicant shortlisted." : "Application marked as not suitable.");
+    } catch (error) {
+      setError(backendErrorMessage(error));
+    } finally {
+      setActiveId("");
+    }
+  }
+
+  async function updateEmployerStatus(id: string, status: EmployerStatus) {
+    if (activeId) return;
+    setActiveId(id);
+    setError("");
+    setNotice("");
+    try {
+      const { employerStatus } = await backendRequest<{ employerStatus: EmployerStatus }>(`/api/employer/job-applications/${encodeURIComponent(id)}`, {
+        method: "PATCH", body: JSON.stringify({ status }),
+      });
+      setApplications((current) => current.map((item) => item._id === id ? { ...item, employerStatus } : item));
+      setNotice("Application review status saved.");
     } catch (error) {
       setError(backendErrorMessage(error));
     } finally {
@@ -89,9 +128,9 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
       {!isLoading && !error && applications.length === 0 && <p className="mt-3 text-sm text-slate-600">{emptyMessages[role]}</p>}
       <ul className="mt-4 space-y-3">
         {(recent ? applications.slice(0, 3) : applications).map((application) => {
-          const status = labels[application.status];
+          const status = role === "employer" && application.employerStatus ? employerLabels[application.employerStatus] : labels[application.status];
           return (
-            <li key={application._id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <li id={`application-${application._id}`} key={application._id} className="scroll-mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="font-semibold break-words">{application.jobTitle}</h3>
@@ -112,6 +151,14 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
                     <div className="sm:col-span-2"><dt className="font-semibold">Cover letter</dt><dd className="whitespace-pre-wrap break-words">{application.coverLetter || "None provided."}</dd></div>
                   </dl>
                   <a href={backendEndpoint(`/api/job-applications/${encodeURIComponent(application._id)}/cv`).href} className="mt-3 inline-block font-semibold text-emerald-800 underline">Download CV</a>
+                  {role === "employer" && <label className="mt-4 block max-w-56 text-sm font-semibold">Your review status
+                    <select value={application.employerStatus ?? ""} disabled={!!activeId}
+                      onChange={(event) => { if (event.target.value) void updateEmployerStatus(application._id, event.target.value as EmployerStatus); }}
+                      className="mt-1.5 block min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 focus-visible:outline-2 focus-visible:outline-emerald-700">
+                      <option value="" disabled>Forwarded</option>
+                      {Object.entries(employerLabels).map(([value, { label }]) => <option key={value} value={value}>{label}</option>)}
+                    </select>
+                  </label>}
                   {role === "admin" && (application.status === "new" || application.status === "shortlisted") && (
                     <div className="mt-4 flex flex-wrap gap-2">
                       {application.status === "new" && <Button type="button" variant="outline" disabled={!!activeId} onClick={() => review(application._id, "shortlisted")}>Shortlist</Button>}
