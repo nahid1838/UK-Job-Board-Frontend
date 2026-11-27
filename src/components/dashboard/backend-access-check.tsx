@@ -1,9 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { backendEndpoint } from "@/lib/backend";
 import { useState } from "react";
-
-const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 export function BackendAccessCheck() {
   const [isChecking, setIsChecking] = useState(false);
@@ -15,7 +14,7 @@ export function BackendAccessCheck() {
     const options: RequestInit = { credentials: "include", cache: "no-store" };
 
     try {
-      const session = await fetch(new URL("/api/me", backendUrl), options);
+      const session = await fetch(backendEndpoint("/api/me"), options);
       if (session.status === 401) {
         setMessage("The backend could not find your session. Sign in again and retry.");
         return;
@@ -26,7 +25,7 @@ export function BackendAccessCheck() {
       }
 
       const { user } = await session.json();
-      const admin = await fetch(new URL("/api/admin/check", backendUrl), options);
+      const admin = await fetch(backendEndpoint("/api/admin/check"), options);
       const sessionMessage = `Backend recognised your account as ${user.role}.`;
 
       if (admin.ok) {

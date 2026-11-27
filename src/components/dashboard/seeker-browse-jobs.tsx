@@ -1,5 +1,7 @@
 "use client";
 
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
+
 import { JobCard } from "@/components/jobs/job-card";
 import { Button } from "@/components/ui/button";
 import { getCategories, type Category } from "@/lib/categories";
@@ -67,7 +69,7 @@ export function SeekerBrowseJobs() {
         <label className="text-sm font-semibold">Category<select name="category" className={input}><option value="">All categories</option>{categories.map((category) => <option key={category._id} value={category._id}>{category.name}</option>)}</select></label>
         <Button type="submit" className="min-h-11 bg-[#075b43] hover:bg-[#064733]">Find jobs</Button>
       </form>
-      {isLoading ? <p role="status" className="mt-5 text-sm">Loading jobs…</p> : error ? <p role="alert" className="mt-5 text-sm text-red-700">{error}</p> : result && (
+      {isLoading ? <ContentSkeleton label="Loading jobs…" className="mt-5 text-sm" /> : error ? <p role="alert" className="mt-5 text-sm text-red-700">{error}</p> : result && (
         <>
           <p className="mt-5 text-sm text-slate-600">{result.total} {result.total === 1 ? "job" : "jobs"} found</p>
           <ul className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{result.jobs.map((job) => <li key={job._id}><JobCard job={job} compact /></li>)}</ul>

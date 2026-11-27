@@ -1,3 +1,4 @@
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
 import { dashboardPaths, getDashboardUser } from "@/lib/dashboard-access";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -9,7 +10,7 @@ async function DashboardRedirect() {
 
 export default function Dashboard() {
   return (
-    <Suspense fallback={<main className="p-6" role="status">Loading dashboard…</main>}>
+    <Suspense fallback={<ContentSkeleton label="Loading dashboard…" className="p-6" />}>
       <DashboardRedirect />
     </Suspense>
   );

@@ -1,3 +1,4 @@
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
 import { JobCard } from "@/components/jobs/job-card";
 import { CompanyLogo } from "@/components/jobs/company-logo";
 import { getPublicJobs } from "@/lib/public-jobs";
@@ -24,7 +25,7 @@ export function HotJobs() {
           <h2 id="hot-jobs" className="flex items-center gap-2 text-xl font-extrabold tracking-tight"><Flame aria-hidden="true" className="size-6 fill-orange-400 text-orange-600" /> Hot Jobs</h2>
           <Link href="/jobs?featured=true" className="flex items-center gap-1 text-sm font-semibold text-emerald-800 hover:underline">View All <ArrowRight aria-hidden="true" className="size-4" /></Link>
         </div>
-        <Suspense fallback={<p role="status">Loading featured jobs…</p>}><FeaturedJobs /></Suspense>
+        <Suspense fallback={<ContentSkeleton label="Loading featured jobs…" />}><FeaturedJobs /></Suspense>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
         {[
@@ -77,7 +78,7 @@ export function HiringCompanies() {
         </div>
         <Link href="/companies" className="text-sm font-semibold text-emerald-800 hover:underline">View all companies</Link>
       </div>
-      <Suspense fallback={<p role="status">Loading companies…</p>}><CompanyCards hiringOnly /></Suspense>
+      <Suspense fallback={<ContentSkeleton label="Loading companies…" />}><CompanyCards hiringOnly /></Suspense>
     </section>
   );
 }

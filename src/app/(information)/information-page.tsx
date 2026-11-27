@@ -2,7 +2,7 @@ import { Footer } from "@/components/shared/footer";
 import { Navbar } from "@/components/shared/navbar";
 import { backendRequest } from "@/lib/backend";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
 import { Suspense } from "react";
 
 const content = {
@@ -13,12 +13,10 @@ const content = {
   cookies: { title: "Cookie Policy", copy: "UK Job Board uses session cookies for sign-in and security. The bookmark feature stores saved job IDs in your browser. You can remove them by clearing site data in your browser settings." },
 };
 
-type Props = { params: Promise<{ page: string }> };
+type Props = { page: keyof typeof content };
 
-async function Information({ params }: Props) {
-  const { page } = await params;
-  if (!Object.hasOwn(content, page)) notFound();
-  const { title, copy } = content[page as keyof typeof content];
+async function Information({ page }: Props) {
+  const { title, copy } = content[page];
   let contactEmail = process.env.SITE_CONTACT_EMAIL ?? "";
   if (page === "contact") {
     try {
@@ -39,12 +37,12 @@ async function Information({ params }: Props) {
   );
 }
 
-export default function InformationPage({ params }: Props) {
+export function InformationPage({ page }: Props) {
   return (
     <>
       <Navbar />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8 text-[#10213b] sm:px-8">
-        <Suspense fallback={<p role="status">Loading page…</p>}><Information params={params} /></Suspense>
+        <Suspense fallback={<ContentSkeleton label="Loading information" />}><Information page={page} /></Suspense>
       </main>
       <Footer />
     </>

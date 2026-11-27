@@ -2,6 +2,7 @@
 
 import { Share2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 export function ShareJobButton({ title }: { title: string }) {
   const [message, setMessage] = useState("");
@@ -13,10 +14,13 @@ export function ShareJobButton({ title }: { title: string }) {
         await navigator.share({ title, url: window.location.href });
       } else {
         await navigator.clipboard.writeText(window.location.href);
-        setMessage("Link copied.");
+        toast.success("Job link copied", { id: "share-job" });
       }
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) setMessage("Copy the URL from your address bar to share this job.");
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      const description = "Copy the URL from your address bar to share this job.";
+      setMessage(description);
+      toast.error("Couldn’t share the job", { id: "share-job", description });
     }
   }
 

@@ -1,5 +1,9 @@
 "use client";
 
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
+
+import { toast } from "sonner";
+
 import { Bell, BriefcaseBusiness, ChevronDown, LogOut, Menu, Search, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -66,7 +70,12 @@ export function AdminWorkspace({ section, name, email, verified, emailEnabled }:
     try {
       await backendRequest("/api/admin/notifications", { method: "PATCH", body: JSON.stringify({ through }) });
       setData((current) => current && { ...current, readAt: through });
-    } catch (error) { setError(backendErrorMessage(error)); }
+      toast.success("Notifications marked as read");
+    } catch (error) {
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t mark notifications as read", { description: message });
+    }
     finally { setMarking(false); }
   }
 
@@ -93,6 +102,7 @@ export function AdminWorkspace({ section, name, email, verified, emailEnabled }:
       window.location.replace("/");
     } catch {
       setError("Couldn’t sign out. Please try again.");
+      toast.error("Couldn’t sign out", { id: "sign-out", description: "Please try again." });
       setSigningOut(false);
     }
   }
@@ -165,7 +175,7 @@ export function AdminWorkspace({ section, name, email, verified, emailEnabled }:
                 <PersonalProfileEditor role="admin" profile={profile} accountName={name} email={email} update={(changes) => setProfile((current) => ({ ...current, ...changes }))} />
                 <section className={`mt-4 ${adminPanel}`}><h2 className="font-extrabold">Account security</h2><div className="mt-3 flex flex-wrap gap-4"><Link href="/forgot-password" className={adminTextLink}>Reset password</Link>{!verified && <Link href="/verify-email" className={adminTextLink}>Verify email</Link>}</div>{emailEnabled && <AccountEmailEditor verified={verified} callbackURL={adminHref("profile")} />}</section>
               </>
-            ) : <p role="status" className={adminPanel}>Loading your profile…</p>)}
+            ) : <ContentSkeleton label="Loading your profile…" className={adminPanel} />)}
             {section === "notifications" && <section className={adminPanel}>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="font-extrabold">Recent admin updates</h2>{unread > 0 && <Button variant="outline" type="button" onClick={markRead} disabled={marking}>{marking ? "Marking…" : "Mark all as read"}</Button>}</div>
               <div className="mb-4 flex flex-wrap gap-4"><Link href={adminHref("companies")} className={adminTextLink}>{data?.companies.pending ?? 0} pending companies</Link><Link href={adminHref("applications")} className={adminTextLink}>{data?.pendingApplications ?? 0} new applications</Link></div>

@@ -1,5 +1,9 @@
 "use client";
 
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
+
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { backendErrorMessage, backendRequest } from "@/lib/backend";
 import { JobPostingPanel } from "./job-posting-panel";
@@ -78,10 +82,14 @@ export function CompanyApplicationPanel({ title, companyHref, jobsHref, mode = "
         body: JSON.stringify({ ...Object.fromEntries(form), acceptedTerms: form.has("acceptedTerms") }),
       });
       setApplication((current) => savedApplication.logoUrl ? savedApplication : { ...savedApplication, logoUrl: current?.logoUrl });
-      setNotice(savedApplication.status === "approved" ? "Company profile saved." : "Company application submitted.");
+      const message = savedApplication.status === "approved" ? "Company profile saved." : "Company application submitted.";
+      setNotice(message);
+      toast.success("Company details saved", { description: message });
       onCompanyChange?.();
     } catch (error) {
-      setSaveError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setSaveError(message);
+      toast.error("Couldn’t save company details", { description: message });
     } finally {
       setIsSaving(false);
     }
@@ -94,7 +102,7 @@ export function CompanyApplicationPanel({ title, companyHref, jobsHref, mode = "
           <h2 className="text-lg font-bold">{title}</h2>
           {application && <span role="status" className={`rounded-full px-3 py-1 text-sm font-semibold capitalize ${statusStyle[application.status]}`}>{application.status}</span>}
         </div>
-        {isLoading && <p role="status" className="mt-3 text-sm">Loading your company application…</p>}
+        {isLoading && <ContentSkeleton label="Loading your company application…" className="mt-3 text-sm" />}
         {loadError && <p role="alert" className="mt-3 text-sm text-red-700">{loadError}</p>}
         {(loadError || application?.status === "pending") && !isLoading && (
           <Button type="button" variant="outline" className="mt-3" onClick={() => {
@@ -211,6 +219,7 @@ export function AdminCompanyQueue({ overviewHref, manageAll = false }: { overvie
     if (status === "suspended" && !window.confirm("Suspend this company and hide its live jobs?")) return;
     if (status === "rejected" && !reason) {
       setError("Enter a rejection reason before rejecting the application.");
+      toast.error("Rejection reason required", { description: "Enter a rejection reason before rejecting the application." });
       return;
     }
     setActiveId(application._id);
@@ -222,9 +231,13 @@ export function AdminCompanyQueue({ overviewHref, manageAll = false }: { overvie
         body: JSON.stringify({ status, reason, revision: application.revision }),
       });
       setApplications((current) => manageAll ? current.map((item) => item._id === updated._id ? updated : item) : current.filter((item) => item._id !== application._id));
-      setDecisionMessage(`${application.details.name} was ${status}.`);
+      const message = `${application.details.name} was ${status}.`;
+      setDecisionMessage(message);
+      toast.success("Company status updated", { description: message });
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t update company status", { description: message });
     } finally {
       setActiveId("");
     }
@@ -243,7 +256,7 @@ export function AdminCompanyQueue({ overviewHref, manageAll = false }: { overvie
           setRefresh((value) => value + 1);
         }}>Refresh queue</Button>
       </div>
-      {isLoading && <p role="status" className="mt-3 text-sm">Loading applications…</p>}
+      {isLoading && <ContentSkeleton label="Loading applications…" className="mt-3 text-sm" />}
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
       {decisionMessage && <p role="status" className="mt-3 text-sm text-emerald-800">{decisionMessage}</p>}
       {!isLoading && !error && visible.length === 0 && <p className="mt-4 text-sm text-slate-600">{manageAll ? "No companies match this filter." : "There are no pending company applications."}</p>}

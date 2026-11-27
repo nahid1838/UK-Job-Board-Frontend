@@ -1,6 +1,8 @@
 
 "use client";
 
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
@@ -43,15 +45,19 @@ function NavbarContent() {
       const { error } = await authClient.signOut();
       if (error) {
         setSignOutError("Couldn’t sign out. Please try again.");
+        toast.error("Couldn’t sign out", { id: "sign-out", description: "Please try again." });
         return;
       }
 
       closeMenu();
       if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
         window.location.replace("/");
+      } else {
+        toast.success("Signed out", { id: "sign-out" });
       }
     } catch {
       setSignOutError("Couldn’t sign out. Please try again.");
+      toast.error("Couldn’t sign out", { id: "sign-out", description: "Please try again." });
     } finally {
       setIsSigningOut(false);
     }

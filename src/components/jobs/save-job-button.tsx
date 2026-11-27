@@ -2,6 +2,7 @@
 
 import { Bookmark } from "lucide-react";
 import { useSyncExternalStore } from "react";
+import { toast } from "sonner";
 
 const key = "uk-job-board-saved-jobs";
 const eventName = "uk-job-board-saved-jobs-changed";
@@ -29,11 +30,16 @@ export function SaveJobButton({ id }: { id: string }) {
 
   function toggle() {
     const jobs = readSavedJobs();
+    const wasSaved = jobs.includes(id);
     try {
-      localStorage.setItem(key, JSON.stringify(jobs.includes(id) ? jobs.filter((jobId) => jobId !== id) : [...jobs, id]));
+      localStorage.setItem(key, JSON.stringify(wasSaved ? jobs.filter((jobId) => jobId !== id) : [...jobs, id]));
       window.dispatchEvent(new Event(eventName));
+      toast.success(wasSaved ? "Job removed from Saved Jobs" : "Job saved", { id: `saved-job-${id}` });
     } catch {
-      // The browser can block local storage in private contexts.
+      toast.error("Couldn’t update Saved Jobs", {
+        id: `saved-job-${id}`,
+        description: "Check that your browser allows site storage and try again.",
+      });
     }
   }
 

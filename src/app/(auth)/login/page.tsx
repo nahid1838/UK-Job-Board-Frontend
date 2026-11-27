@@ -1,3 +1,4 @@
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
 import { AuthForm } from "@/components/auth/auth-form";
 import { applicationReturnPath } from "@/lib/auth-return-path";
 import { Suspense } from "react";
@@ -15,7 +16,7 @@ async function LoginForm({ searchParams }: LoginPageProps) {
 
 export default function LoginPage({ searchParams }: LoginPageProps) {
   return (
-    <Suspense fallback={<p role="status">Loading sign-in…</p>}>
+    <Suspense fallback={<ContentSkeleton label="Loading sign-in…" />}>
       <LoginForm searchParams={searchParams} />
     </Suspense>
   );

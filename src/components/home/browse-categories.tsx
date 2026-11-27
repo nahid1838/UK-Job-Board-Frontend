@@ -1,3 +1,4 @@
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
 import { CategoryGrid } from "@/components/jobs/category-grid";
 import { Grid3X3 } from "lucide-react";
 import Link from "next/link";
@@ -13,7 +14,7 @@ export function BrowseCategories() {
         </div>
         <Link href="/categories" className="inline-flex min-h-11 items-center rounded-lg text-sm font-semibold text-emerald-800 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">View all categories</Link>
       </div>
-      <Suspense fallback={<p role="status" className="text-sm text-slate-600">Loading categories…</p>}>
+      <Suspense fallback={<ContentSkeleton label="Loading categories…" className="text-sm text-slate-600" />}>
         <CategoryGrid limit={12} />
       </Suspense>
     </section>

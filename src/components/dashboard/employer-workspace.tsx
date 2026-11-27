@@ -1,5 +1,9 @@
 "use client";
 
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
+
+import { toast } from "sonner";
+
 import { Bell, BriefcaseBusiness, ChevronDown, LogOut, Menu, Search, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -76,6 +80,7 @@ export function EmployerWorkspace({ section, accountName, email, verified, email
       window.location.replace("/");
     } catch {
       setError("Couldn’t sign out. Please try again.");
+      toast.error("Couldn’t sign out", { id: "sign-out", description: "Please try again." });
       setSigningOut(false);
     }
   }
@@ -105,7 +110,12 @@ export function EmployerWorkspace({ section, accountName, email, verified, email
     try {
       await backendRequest("/api/employer/settings", { method: "PATCH", body: JSON.stringify({ notificationsReadAt: latest }) });
       setData((current) => current && { ...current, preferences: { ...current.preferences, notificationsReadAt: latest } });
-    } catch (error) { setError(backendErrorMessage(error)); }
+      toast.success("Notifications marked as read");
+    } catch (error) {
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t mark notifications as read", { description: message });
+    }
     finally { setMarking(false); }
   }
 
@@ -128,7 +138,12 @@ export function EmployerWorkspace({ section, accountName, email, verified, email
       await backendRequest("/api/employer/settings", { method: "PATCH", body: JSON.stringify({ showNotificationBadge }) });
       setData((current) => current && { ...current, preferences: { ...current.preferences, showNotificationBadge } });
       setNotice("Settings saved.");
-    } catch (error) { setError(backendErrorMessage(error)); }
+      toast.success("Settings saved");
+    } catch (error) {
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t save settings", { description: message });
+    }
     finally { setSaving(false); }
   }
 
@@ -221,7 +236,7 @@ export function EmployerWorkspace({ section, accountName, email, verified, email
             {section === "profile" && (profileError
               ? <p role="alert" className={employerPanel}>{profileError}</p>
               : profile ? <PersonalProfileEditor role="employer" profile={profile} accountName={name} email={email} update={(changes) => setProfile((current) => ({ ...current, ...changes }))} />
-                : <p role="status" className={employerPanel}>Loading your profile…</p>)}
+                : <ContentSkeleton label="Loading your profile…" className={employerPanel} />)}
             {["company", "post-a-job", "jobs", "featured"].includes(section) && (
               <>
                 <CompanyApplicationPanel title={section === "company" ? "Company profile" : companyName} companyHref={employerHref("company")} jobsHref={employerHref("post-a-job")}

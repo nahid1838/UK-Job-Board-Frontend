@@ -1,5 +1,9 @@
 "use client";
 
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
+
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { backendErrorMessage, backendRequest } from "@/lib/backend";
 import type { Category } from "@/lib/categories";
@@ -65,16 +69,20 @@ export function CategoryManager() {
       });
       setCategories((current) => [...current.filter((item) => item._id !== category._id), category]
         .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, "en-GB")));
-      setNotice(id ? `${category.name} was updated.` : `${category.name} was added.`);
+      const message = id ? `${category.name} was updated.` : `${category.name} was added.`;
+      setNotice(message);
+      toast.success("Category saved", { description: message });
       if (!id) form.reset();
     } catch (error) {
-      setSaveError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setSaveError(message);
+      toast.error("Couldn’t save the category", { description: message });
     } finally {
       setIsSaving(false);
     }
   }
 
-  if (isLoading) return <p role="status" className="mt-6 text-sm">Loading categories…</p>;
+  if (isLoading) return <ContentSkeleton label="Loading categories…" className="mt-6 text-sm" />;
   if (loadError) return <p role="alert" className="mt-6 text-sm text-red-700">{loadError} Refresh to retry.</p>;
 
   return (

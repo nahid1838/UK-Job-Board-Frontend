@@ -1,3 +1,4 @@
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
 import { JobCard } from "@/components/jobs/job-card";
@@ -101,7 +102,7 @@ async function JobResults({ searchParams }: JobsPageProps) {
         ) : jobs.length === 0 ? (
           <p className="mt-3 rounded-xl bg-white p-5 text-slate-700">No jobs match your search.</p>
         ) : (
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {jobs.map((job) => (
               <li key={job._id}><JobCard job={job} /></li>
             ))}
@@ -124,12 +125,12 @@ export default function JobsPage({ searchParams }: JobsPageProps) {
     <>
       <Navbar />
       <main className="flex-1 bg-slate-50 px-4 py-8 sm:px-8">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-6xl">
           <header className="rounded-2xl bg-[#063b37] p-6 text-white sm:p-8">
             <h1 className="text-3xl font-extrabold sm:text-4xl">All jobs</h1>
             <p className="mt-2 text-emerald-50">Find your next opportunity in the UK.</p>
           </header>
-          <Suspense fallback={<p role="status" className="mt-6 text-sm">Loading jobs…</p>}>
+          <Suspense fallback={<ContentSkeleton label="Loading jobs…" className="mt-6 text-sm" />}>
             <JobResults searchParams={searchParams} />
           </Suspense>
         </div>

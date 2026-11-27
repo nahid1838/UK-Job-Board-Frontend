@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 
 type Mode = "forgot" | "verify" | "reset";
 const copy = {
-  forgot: { title: "Reset your password", button: "Send reset link", success: "If an account uses that email, a reset link will arrive shortly." },
-  verify: { title: "Verify your email", button: "Send verification link", success: "If the email needs verification, a new link will arrive shortly." },
-  reset: { title: "Choose a new password", button: "Change password", success: "Password changed. You can now sign in." },
+  forgot: { title: "Reset your password", button: "Send reset link", successTitle: "Check your inbox", success: "If an account uses that email, you’ll receive a reset link. Check your spam folder if it doesn’t arrive." },
+  verify: { title: "Verify your email", button: "Send verification link", successTitle: "Check your inbox", success: "If your email needs verification, you’ll receive a new link. Check your spam folder if it doesn’t arrive." },
+  reset: { title: "Choose a new password", button: "Change password", successTitle: "Password updated", success: "You can now sign in with your new password." },
 };
 
 export function EmailActionsForm({ mode, token, enabled }: { mode: Mode; token?: string; enabled: boolean }) {
@@ -18,6 +19,11 @@ export function EmailActionsForm({ mode, token, enabled }: { mode: Mode; token?:
   const [success, setSuccess] = useState("");
   const { title, button } = copy[mode];
   const canSubmit = enabled && (mode !== "reset" || Boolean(token));
+
+  function showError(title: string, description: string) {
+    setError(description);
+    toast.error(title, { id: "auth-email", description });
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,7 +34,7 @@ export function EmailActionsForm({ mode, token, enabled }: { mode: Mode; token?:
     setError("");
     setSuccess("");
     if (mode === "reset" && password !== values.get("confirmation")) {
-      setError("The passwords must match.");
+      showError("Passwords don’t match", "Enter the same password in both fields.");
       return;
     }
 
@@ -40,13 +46,25 @@ export function EmailActionsForm({ mode, token, enabled }: { mode: Mode; token?:
           ? await authClient.requestPasswordReset({ email, redirectTo: "/reset-password" })
           : await authClient.sendVerificationEmail({ email, callbackURL: "/login" });
 
-      if (result.error && (mode === "reset" || result.error.status >= 429)) {
-        setError(mode === "reset" ? "The password could not be changed. Request a new reset link and try again." : "Couldn’t send an email right now. Try again shortly.");
-        return;
+      if (result.error) {
+        const { status } = result.error;
+        if (status === 429) {
+          showError("Too many attempts", "Wait a moment before trying again.");
+          return;
+        }
+        if (status >= 500) {
+          showError("Account service unavailable", "Try again in a moment.");
+          return;
+        }
+        if (mode === "reset") {
+          showError("Couldn’t update your password", "Request a new reset link and try again.");
+          return;
+        }
       }
       setSuccess(copy[mode].success);
+      toast.success(copy[mode].successTitle, { id: "auth-email", description: copy[mode].success });
     } catch {
-      setError("Couldn’t reach the account service. Try again shortly.");
+      showError("Account service unavailable", "Check your connection and try again.");
     } finally {
       setPending(false);
     }

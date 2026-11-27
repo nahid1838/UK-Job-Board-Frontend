@@ -1,5 +1,8 @@
 "use client";
 
+import { cvUploadLimitMb } from "@/lib/cv-upload";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { backendEndpoint, backendErrorMessage, backendRequest } from "@/lib/backend";
 import { authClient } from "@/lib/auth-client";
@@ -56,8 +59,11 @@ export function PersonalProfileEditor({ profile, accountName, email, update, rol
       await backendRequest(`/api/${role}/profile`, { method: "PATCH", body: JSON.stringify(changed) });
       update(changed);
       setNotice("Profile saved.");
+      toast.success("Profile saved");
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t save your profile", { description: message });
     } finally {
       setBusy(false);
     }
@@ -100,13 +106,16 @@ function PersonalPhotoEditor({ name, photo, update, role }: {
     setPreview(undefined);
     if (!file.size || file.size > 1048576 || !["image/png", "image/jpeg"].includes(file.type)) {
       setError("Choose a PNG or JPEG image up to 1 MB.");
+      toast.error("Invalid profile photo", { description: "Choose a PNG or JPEG image up to 1 MB." });
       return;
     }
     setReading(true);
     try {
       setPreview(await readFile(file));
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t read the image", { description: message });
     } finally {
       setReading(false);
     }
@@ -121,10 +130,14 @@ function PersonalPhotoEditor({ name, photo, update, role }: {
         method: "PATCH", body: JSON.stringify({ photo: preview }),
       });
       update({ photo: preview });
-      setNotice(preview ? "Profile photo updated." : "Profile photo removed.");
+      const message = preview ? "Profile photo updated." : "Profile photo removed.";
+      setNotice(message);
+      toast.success(message);
       setPreview(undefined);
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t save your profile photo", { description: message });
     } finally {
       setSaving(false);
     }
@@ -172,8 +185,9 @@ export function SeekerCvEditor({ cvType, update }: { cvType?: SeekerProfile["cvT
     if (busy) return;
     const form = event.currentTarget;
     const file = new FormData(form).get("cv");
-    if (!(file instanceof File) || !file.size || file.size > 5 * 1024 * 1024 || !/\.(pdf|docx)$/i.test(file.name)) {
-      setError("Choose a PDF or DOCX CV up to 5 MB.");
+    if (!(file instanceof File) || !file.size || file.size > cvUploadLimitMb * 1024 * 1024 || !/\.(pdf|docx)$/i.test(file.name)) {
+      setError(`Choose a PDF or DOCX CV up to ${cvUploadLimitMb} MB.`);
+      toast.error("Invalid CV file", { description: `Choose a PDF or DOCX CV up to ${cvUploadLimitMb} MB.` });
       return;
     }
     setBusy(true);
@@ -185,8 +199,11 @@ export function SeekerCvEditor({ cvType, update }: { cvType?: SeekerProfile["cvT
       update(/\.pdf$/i.test(file.name) ? "pdf" : "docx");
       form.reset();
       setNotice("CV saved.");
+      toast.success("CV saved");
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t save your CV", { description: message });
     } finally {
       setBusy(false);
     }
@@ -200,8 +217,11 @@ export function SeekerCvEditor({ cvType, update }: { cvType?: SeekerProfile["cvT
       await backendRequest("/api/seeker/cv", { method: "DELETE", body: "{}" });
       update(undefined);
       setNotice("CV removed.");
+      toast.success("CV removed");
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t remove your CV", { description: message });
     } finally {
       setBusy(false);
     }
@@ -215,7 +235,7 @@ export function SeekerCvEditor({ cvType, update }: { cvType?: SeekerProfile["cvT
         <Button type="button" variant="outline" disabled={busy} onClick={remove}>Remove</Button>
       </div>}
       <form method="post" onSubmit={upload} className="mt-5 space-y-3">
-        <label className="block text-sm font-semibold">Choose CV (PDF or DOCX, up to 5 MB)
+        <label className="block text-sm font-semibold">Choose CV (PDF or DOCX, up to {cvUploadLimitMb} MB)
           <input name="cv" type="file" accept=".pdf,.docx" required className={fieldStyle} />
         </label>
         <Button type="submit" disabled={busy} className="min-h-11 bg-[#075b43] hover:bg-[#064733]">{busy ? "Please wait…" : cvType ? "Replace CV" : "Upload CV"}</Button>
@@ -242,12 +262,16 @@ export function AccountEmailEditor({ verified, callbackURL = "/dashboard/seeker/
     try {
       const result = await authClient.changeEmail({ newEmail, callbackURL });
       if (result.error) throw new Error(result.error.message || "Could not start the email change.");
-      setNotice(verified
+      const message = verified
         ? "If the new address is available, you’ll receive instructions at your current email first."
-        : "If the address is available, a verification link will be sent to the new email.");
+        : "If the address is available, a verification link will be sent to the new email.";
+      setNotice(message);
+      toast.success("Check your inbox", { description: message });
       form.reset();
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t update your email", { description: message });
     } finally {
       setBusy(false);
     }

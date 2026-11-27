@@ -1,3 +1,4 @@
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
 import { DashboardPage } from "@/components/dashboard/dashboard-page";
 import { dashboardNavigation } from "@/lib/dashboard-navigation";
 import { notFound } from "next/navigation";
@@ -19,7 +20,7 @@ async function DashboardRouteContent({ params }: DashboardRouteProps) {
 
 export default function DashboardRoute({ params }: DashboardRouteProps) {
   return (
-    <Suspense fallback={<main className="p-6" role="status">Loading dashboard…</main>}>
+    <Suspense fallback={<ContentSkeleton label="Loading dashboard…" className="p-6" />}>
       <DashboardRouteContent params={params} />
     </Suspense>
   );

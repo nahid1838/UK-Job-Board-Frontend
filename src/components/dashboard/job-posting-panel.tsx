@@ -1,5 +1,9 @@
 "use client";
 
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
+
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { backendErrorMessage, backendRequest } from "@/lib/backend";
 import { getCategories, type Category } from "@/lib/categories";
@@ -77,11 +81,15 @@ export function JobPostingPanel({ mode = "all", admin = false }: { mode?: "all" 
         body: JSON.stringify({ ...Object.fromEntries(values), rightToWork: values.has("rightToWork"), ...(editing && { action: "edit" }) }),
       });
       setJobs((current) => editing ? current.map((item) => item._id === job._id ? job : item) : [job, ...current]);
-      setNotice(editing ? `Changes saved for ${job.title}.` : `Draft saved for ${job.title}.`);
+      const message = editing ? `Changes saved for ${job.title}.` : `Draft saved for ${job.title}.`;
+      setNotice(message);
+      toast.success("Job saved", { description: message });
       form.reset();
       setEditing(null);
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t save the job", { description: message });
     } finally {
       setPendingAction("");
     }
@@ -104,8 +112,11 @@ export function JobPostingPanel({ mode = "all", admin = false }: { mode?: "all" 
         setJobs((items) => action === "duplicate" ? [job, ...items] : items.map((item) => item._id === id ? job : item));
       }
       setNotice("Job updated.");
+      toast.success("Job updated");
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t update the job", { description: message });
     } finally {
       setPendingAction("");
     }
@@ -123,9 +134,13 @@ export function JobPostingPanel({ mode = "all", admin = false }: { mode?: "all" 
         body: "{}",
       });
       setJobs((current) => current.map((item) => item._id === id ? job : item));
-      setNotice(`${job.title} is now live on the Jobs page.`);
+      const message = `${job.title} is now live on the Jobs page.`;
+      setNotice(message);
+      toast.success("Job published", { description: message });
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t publish the job", { description: message });
     } finally {
       setPendingAction("");
     }
@@ -142,7 +157,7 @@ export function JobPostingPanel({ mode = "all", admin = false }: { mode?: "all" 
         </>
       )}
       {loadError && <p role="alert" className="mt-4 text-sm text-red-700">{loadError} Refresh the page to retry.</p>}
-      {isLoading && <p role="status" className="mt-4 text-sm">Loading your jobs…</p>}
+      {isLoading && <ContentSkeleton label="Loading your jobs…" className="mt-4 text-sm" />}
       {!isLoading && !loadError && (
         <>
           {(canPost || editing) && categories.length === 0 && <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Add a visible category before saving a job.</p>}

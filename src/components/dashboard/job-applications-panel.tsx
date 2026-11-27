@@ -1,5 +1,9 @@
 "use client";
 
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
+
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { backendEndpoint, backendErrorMessage, backendRequest } from "@/lib/backend";
 import { useEffect, useState, type FormEvent } from "react";
@@ -91,9 +95,13 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
         body: JSON.stringify({ status }),
       });
       setApplications((current) => current.map((item) => item._id === id ? { ...item, status } : item));
-      setNotice(status === "forwarded" ? "Application forwarded to the employer." : status === "shortlisted" ? "Applicant shortlisted." : "Application marked as not suitable.");
+      const message = status === "forwarded" ? "Application forwarded to the employer." : status === "shortlisted" ? "Applicant shortlisted." : "Application marked as not suitable.";
+      setNotice(message);
+      toast.success("Application updated", { description: message });
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t update the application", { description: message });
     } finally {
       setActiveId("");
     }
@@ -109,9 +117,13 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
         method: "PATCH", body: JSON.stringify({ status }),
       });
       setApplications((current) => current.map((item) => item._id === id ? { ...item, employerStatus } : item));
-      setNotice("Application review status saved.");
+      const message = "Application review status saved.";
+      setNotice(message);
+      toast.success("Review status saved", { description: message });
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t save the review status", { description: message });
     } finally {
       setActiveId("");
     }
@@ -130,7 +142,12 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
       });
       setApplications((current) => current.map((item) => item._id === id ? { ...item, adminNote: reply.note } : item));
       setNotice("Private note saved.");
-    } catch (error) { setError(backendErrorMessage(error)); }
+      toast.success("Private note saved");
+    } catch (error) {
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t save the private note", { description: message });
+    }
     finally { setActiveId(""); }
   }
 
@@ -144,7 +161,7 @@ export function JobApplicationsPanel({ role, recent = false }: { role: keyof typ
           setRefresh((value) => value + 1);
         }}>Refresh</Button>}
       </div>
-      {isLoading && <p role="status" className="mt-3 text-sm text-slate-600">Loading applications…</p>}
+      {isLoading && <ContentSkeleton label="Loading applications…" className="mt-3 text-sm text-slate-600" />}
       {error && <p role="alert" className="mt-3 text-sm text-red-700">{error}</p>}
       {notice && <p role="status" className="mt-3 text-sm text-emerald-800">{notice}</p>}
       {role === "admin" && !recent && <div className="mt-4 flex flex-wrap gap-2">

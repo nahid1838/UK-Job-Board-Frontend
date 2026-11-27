@@ -1,5 +1,8 @@
 "use client";
 
+import { cvUploadLimitMb } from "@/lib/cv-upload";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { backendErrorMessage, backendRequest } from "@/lib/backend";
 import Link from "next/link";
@@ -29,8 +32,9 @@ export function JobApplicationForm({ jobId, name, email, phone, hasSavedCv }: { 
     const cv = fields.get("cv");
     setError("");
 
-    if (!useSavedCv && (!(cv instanceof File) || !cv.size || cv.size > 5 * 1024 * 1024 || !/\.(pdf|docx)$/i.test(cv.name))) {
-      setError("Choose a PDF or DOCX CV up to 5 MB.");
+    if (!useSavedCv && (!(cv instanceof File) || !cv.size || cv.size > cvUploadLimitMb * 1024 * 1024 || !/\.(pdf|docx)$/i.test(cv.name))) {
+      setError(`Choose a PDF or DOCX CV up to ${cvUploadLimitMb} MB.`);
+      toast.error("Invalid CV file", { description: `Choose a PDF or DOCX CV up to ${cvUploadLimitMb} MB.` });
       return;
     }
 
@@ -49,8 +53,11 @@ export function JobApplicationForm({ jobId, name, email, phone, hasSavedCv }: { 
         }),
       });
       setSubmitted(true);
+      toast.success("Application submitted", { description: "Track your application in My Applications." });
     } catch (error) {
-      setError(backendErrorMessage(error));
+      const message = backendErrorMessage(error);
+      setError(message);
+      toast.error("Couldn’t submit your application", { description: message });
     } finally {
       setIsSubmitting(false);
     }
@@ -81,7 +88,7 @@ export function JobApplicationForm({ jobId, name, email, phone, hasSavedCv }: { 
         <div className="min-w-0">
           <label className="block text-sm font-semibold">CV
             <input name="cv" type="file" accept=".pdf,.docx" required={!useSavedCv} disabled={useSavedCv} aria-describedby="cv-help" className={fieldStyle} />
-            <span id="cv-help" className="mt-1 block font-normal text-slate-600">PDF or DOCX, up to 5 MB.</span>
+            <span id="cv-help" className="mt-1 block font-normal text-slate-600">PDF or DOCX, up to {cvUploadLimitMb} MB.</span>
           </label>
           {hasSavedCv && <label className="mt-3 flex items-center gap-2 text-sm font-semibold"><input type="checkbox" checked={useSavedCv} onChange={(event) => setUseSavedCv(event.target.checked)} className="size-4 accent-emerald-700" /> Use the CV saved to my profile</label>}
         </div>

@@ -22,6 +22,12 @@ export async function backendRequest<T>(path: string, options: RequestInit = {})
     cache: "no-store",
     headers,
   });
+  if (!response.headers.get("content-type")?.includes("application/json")) {
+    const message = response.status === 413
+      ? "The upload is too large. Choose a smaller file and try again."
+      : "The job board service could not complete this request. Try again shortly.";
+    throw new BackendRequestError(message, response.status);
+  }
   const data = await response.json();
   if (!response.ok) throw new BackendRequestError(data.message || "The request could not be completed.", response.status);
   return data;

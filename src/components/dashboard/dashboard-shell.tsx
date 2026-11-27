@@ -1,5 +1,7 @@
 "use client";
 
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { dashboardHref, dashboardNavigation } from "@/lib/dashboard-navigation";
@@ -35,6 +37,7 @@ export function DashboardShell({ role, name, section, children }: {
       window.location.replace("/");
     } catch {
       setSignOutError("Couldn’t sign out. Please try again.");
+      toast.error("Couldn’t sign out", { id: "sign-out", description: "Please try again." });
       setIsSigningOut(false);
     }
   }

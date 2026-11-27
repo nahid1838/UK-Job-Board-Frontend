@@ -1,3 +1,4 @@
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
 import { AuthForm } from "@/components/auth/auth-form";
 import { applicationReturnPath } from "@/lib/auth-return-path";
 import { Suspense } from "react";
@@ -22,7 +23,7 @@ async function RegisterForm({ searchParams }: RegisterPageProps) {
 
 export default function RegisterPage({ searchParams }: RegisterPageProps) {
   return (
-    <Suspense fallback={<p role="status">Loading registration…</p>}>
+    <Suspense fallback={<ContentSkeleton label="Loading registration…" />}>
       <RegisterForm searchParams={searchParams} />
     </Suspense>
   );

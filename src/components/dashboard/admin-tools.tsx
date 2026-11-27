@@ -1,9 +1,12 @@
 "use client";
 
+import { toast } from "sonner";
+import { ShieldCheck, UserRoundX } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { backendErrorMessage, backendRequest } from "@/lib/backend";
 import { authClient } from "@/lib/auth-client";
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 
 export const adminPanel = "min-w-0 rounded-2xl border border-[#e1e9ef] bg-white p-4 shadow-sm sm:p-5";
 export const adminInput = "mt-1.5 min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal focus-visible:outline-2 focus-visible:outline-emerald-700";
@@ -37,6 +40,11 @@ export function AdminUsers({ emailEnabled }: { emailEnabled: boolean }) {
   const [pending, setPending] = useState("");
   const [feedback, setFeedback] = useState("");
   const [failure, setFailure] = useState("");
+  const confirmationDialog = useRef<HTMLDialogElement>(null);
+  const [confirmation, setConfirmation] = useState<{ user: User; action: "promote" | "disable" } | null>(null);
+  const confirmationTitleId = useId();
+  const confirmationDescriptionId = useId();
+  const isDisabling = confirmation?.action === "disable";
   const filtered = data?.users.filter((user) => `${user.name} ${user.email} ${user.role ?? user.accountType ?? "seeker"}`.toLowerCase().includes(query.trim().toLowerCase()));
   const isLoaded = Boolean(data);
   useEffect(() => {
@@ -46,14 +54,59 @@ export function AdminUsers({ emailEnabled }: { emailEnabled: boolean }) {
 
   async function change(user: User) {
     const active = user.active === false;
-    if (pending || (!active && !window.confirm(`Disable ${user.name}’s account?`))) return;
+    if (pending) return;
     setPending(user._id); setFailure(""); setFeedback("");
     try {
       await backendRequest(`/api/admin/users/${user._id}`, { method: "PATCH", body: JSON.stringify({ active }) });
       setData((current) => current && { users: current.users.map((item) => item._id === user._id ? { ...item, active } : item) });
-      setFeedback(active ? "Account reactivated." : "Account disabled.");
-    } catch (error) { setFailure(backendErrorMessage(error)); }
+      const message = active ? "Account reactivated." : "Account disabled.";
+      setFeedback(message);
+      toast.success("Account status updated", { description: message });
+    } catch (error) {
+      const message = backendErrorMessage(error);
+      setFailure(message);
+      toast.error("Couldn’t update the account", { description: message });
+    }
     finally { setPending(""); }
+  }
+
+  function openConfirmation(user: User, action: "promote" | "disable") {
+    setConfirmation({ user, action });
+    confirmationDialog.current?.showModal();
+  }
+
+  function confirmAccountAction() {
+    if (pending || !confirmation) return;
+    confirmationDialog.current?.close();
+    if (confirmation.action === "disable") {
+      void change(confirmation.user);
+    } else {
+      void promoteToAdmin(confirmation.user);
+    }
+  }
+
+  async function promoteToAdmin(user: User) {
+    setPending(user._id);
+    setFailure("");
+    setFeedback("");
+    try {
+      const { role } = await backendRequest<{ role: "admin" }>(`/api/admin/users/${user._id}/role`, {
+        method: "PATCH",
+        body: JSON.stringify({ role: "admin" }),
+      });
+      setData((current) => current && {
+        users: current.users.map((item) => item._id === user._id ? { ...item, role } : item),
+      });
+      const message = `${user.name} now has admin access.`;
+      setFeedback(message);
+      toast.success("Admin access granted", { description: message });
+    } catch (error) {
+      const message = backendErrorMessage(error);
+      setFailure(message);
+      toast.error("Couldn’t grant admin access", { description: message });
+    } finally {
+      setPending("");
+    }
   }
 
   async function sendReset(user: User) {
@@ -63,7 +116,12 @@ export function AdminUsers({ emailEnabled }: { emailEnabled: boolean }) {
       const result = await authClient.requestPasswordReset({ email: user.email, redirectTo: "/reset-password" });
       if (result.error) throw new Error(result.error.message || "Could not request a password reset.");
       setFeedback("Password reset requested.");
-    } catch (error) { setFailure(backendErrorMessage(error)); }
+      toast.success("Password reset requested");
+    } catch (error) {
+      const message = backendErrorMessage(error);
+      setFailure(message);
+      toast.error("Couldn’t request a password reset", { description: message });
+    }
     finally { setPending(""); }
   }
 
@@ -83,13 +141,41 @@ export function AdminUsers({ emailEnabled }: { emailEnabled: boolean }) {
               <td className="px-3 py-2 capitalize">{user.role ?? user.accountType ?? "seeker"}</td>
               <td className="px-3 py-2">{user.active === false ? "Disabled" : "Active"}</td>
               <td className="px-3 py-2">{user.role !== "admin" && <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="outline" disabled={!!pending} onClick={() => change(user)}>{pending === user._id ? "Working…" : user.active === false ? "Reactivate" : "Disable"}</Button>
+                <Button type="button" variant="outline" disabled={!!pending} onClick={() => user.active === false ? change(user) : openConfirmation(user, "disable")}>{pending === user._id ? "Working…" : user.active === false ? "Reactivate" : "Disable"}</Button>
+                {user.active !== false && <Button type="button" variant="outline" disabled={!!pending} onClick={() => openConfirmation(user, "promote")}>Make admin</Button>}
                 {emailEnabled && user.active !== false && <Button type="button" variant="ghost" disabled={!!pending} onClick={() => sendReset(user)}>Send reset link</Button>}
               </div>}</td>
             </tr>)}</tbody>
           </table>
         </div>
       ) : <p className="text-sm text-slate-600">No accounts match your search.</p>)}</LoadState>
+      <dialog
+        ref={confirmationDialog}
+        aria-labelledby={confirmationTitleId}
+        aria-describedby={confirmationDescriptionId}
+        onClose={() => setConfirmation(null)}
+        className="m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-slate-900 shadow-xl backdrop:bg-slate-950/50"
+      >
+        <div className={`mb-4 grid size-11 place-items-center rounded-xl ${isDisabling ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800"}`}>
+          {isDisabling ? <UserRoundX aria-hidden="true" className="size-5" /> : <ShieldCheck aria-hidden="true" className="size-5" />}
+        </div>
+        <h2 id={confirmationTitleId} className="text-lg font-bold">{isDisabling ? "Disable this account?" : "Grant admin access?"}</h2>
+        <div id={confirmationDescriptionId} className="mt-2 space-y-3 text-sm leading-relaxed text-slate-600">
+          <p>{isDisabling
+            ? "The user will lose access to their account. You can restore access by reactivating the account from this page."
+            : "This account will be able to manage users, jobs, companies, applications, and site settings."}</p>
+          <div className="rounded-lg bg-slate-50 px-3 py-2">
+            <p className="font-semibold text-slate-900">{confirmation?.user.name}</p>
+            <p className="break-all">{confirmation?.user.email}</p>
+          </div>
+        </div>
+        <div className="mt-6 flex flex-wrap justify-end gap-2">
+          <Button type="button" variant="outline" autoFocus onClick={() => confirmationDialog.current?.close()}>Cancel</Button>
+          <Button type="button" variant={isDisabling ? "destructive" : "default"} className={isDisabling ? undefined : adminButton} onClick={confirmAccountAction}>
+            {isDisabling ? "Disable account" : "Grant admin access"}
+          </Button>
+        </div>
+      </dialog>
     </section>
   );
 }
@@ -111,7 +197,12 @@ export function AdminEmailTemplates() {
     try {
       await backendRequest(`/api/admin/email-templates/${key}`, { method: "PATCH", body: JSON.stringify({ subject: values.get("subject"), text: values.get("text") }) });
       setMessage("Email template saved.");
-    } catch (error) { setFailure(backendErrorMessage(error)); }
+      toast.success("Email template saved");
+    } catch (error) {
+      const message = backendErrorMessage(error);
+      setFailure(message);
+      toast.error("Couldn’t save the email template", { description: message });
+    }
     finally { setPending(""); }
   }
   return (
@@ -146,7 +237,12 @@ export function AdminSiteSettings() {
     try {
       await backendRequest("/api/admin/settings", { method: "PATCH", body: JSON.stringify({ contactEmail: values.get("contactEmail"), featuredDays: Number(values.get("featuredDays")) }) });
       setMessage("Site settings saved.");
-    } catch (error) { setFailure(backendErrorMessage(error)); }
+      toast.success("Site settings saved");
+    } catch (error) {
+      const message = backendErrorMessage(error);
+      setFailure(message);
+      toast.error("Couldn’t save site settings", { description: message });
+    }
     finally { setBusy(false); }
   }
   return (

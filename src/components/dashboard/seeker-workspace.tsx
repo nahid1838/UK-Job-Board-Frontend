@@ -1,5 +1,9 @@
 "use client";
 
+import { ContentSkeleton } from "@/components/shared/content-skeleton";
+
+import { toast } from "sonner";
+
 import { authClient } from "@/lib/auth-client";
 import { backendErrorMessage, backendRequest } from "@/lib/backend";
 import { dashboardHref, dashboardNavigation } from "@/lib/dashboard-navigation";
@@ -113,7 +117,7 @@ function SavedJobs({ snapshot }: { snapshot: string }) {
     });
     return () => { cancelled = true; };
   }, [snapshot]);
-  if (result.snapshot !== snapshot) return <p role="status" className={seekerPanel}>Loading saved jobs…</p>;
+  if (result.snapshot !== snapshot) return <ContentSkeleton label="Loading saved jobs…" className={seekerPanel} />;
   return (
     <section className={seekerPanel}>
       {!result.jobs.length && <p className="text-sm text-slate-600">Bookmark jobs to find them here. Saved jobs are stored in this browser.</p>}
@@ -182,7 +186,12 @@ export function SeekerWorkspace({ section, accountName, email, verified, emailEn
     try {
       await backendRequest("/api/seeker/notifications", { method: "PATCH", body: JSON.stringify({ through }) });
       setProfile((current) => ({ ...current, notificationsReadAt: through }));
-    } catch (error) { setActionMessage(backendErrorMessage(error)); }
+      toast.success("Notifications marked as read");
+    } catch (error) {
+      const message = backendErrorMessage(error);
+      setActionMessage(message);
+      toast.error("Couldn’t mark notifications as read", { description: message });
+    }
     finally { setMarkingRead(false); }
   }
 
@@ -192,7 +201,11 @@ export function SeekerWorkspace({ section, accountName, email, verified, emailEn
       const { error } = await authClient.signOut();
       if (error) throw error;
       window.location.replace("/");
-    } catch { setActionMessage("Couldn’t sign out. Please try again."); setSigningOut(false); }
+    } catch {
+      setActionMessage("Couldn’t sign out. Please try again.");
+      toast.error("Couldn’t sign out", { id: "sign-out", description: "Please try again." });
+      setSigningOut(false);
+    }
   }
 
   return (
@@ -267,9 +280,9 @@ export function SeekerWorkspace({ section, accountName, email, verified, emailEn
               <div className="min-w-0 space-y-4">
                 <section className={seekerPanel}>
                   <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="flex items-center gap-2 text-lg font-extrabold"><Flame aria-hidden="true" className="size-5 text-emerald-800" />Featured Jobs</h2><Link href="/jobs?featured=true" className={textLink}>View All <ArrowRight aria-hidden="true" className="size-4" /></Link></div>
-                  {jobsError ? <p role="status" className="text-sm text-slate-600">{jobsError}</p> : jobTotal === undefined ? <p role="status" className="text-sm">Loading jobs…</p> : <FeaturedCards jobs={jobs} />}
+                  {jobsError ? <p role="status" className="text-sm text-slate-600">{jobsError}</p> : jobTotal === undefined ? <ContentSkeleton label="Loading jobs…" className="text-sm" /> : <FeaturedCards jobs={jobs} />}
                 </section>
-                {applicationError ? <p className={seekerPanel} role="alert">{applicationError}</p> : !applicationsReady ? <p className={seekerPanel} role="status">Loading applications…</p> : <ApplicationsTable applications={applications} recent />}
+                {applicationError ? <p className={seekerPanel} role="alert">{applicationError}</p> : !applicationsReady ? <ContentSkeleton label="Loading applications…" className={seekerPanel} /> : <ApplicationsTable applications={applications} recent />}
               </div>
               <aside className="grid min-w-0 gap-4 sm:grid-cols-2 xl:grid-cols-1">
                 <section className={seekerPanel}>
@@ -288,9 +301,9 @@ export function SeekerWorkspace({ section, accountName, email, verified, emailEn
             </div>
           </>}
           {section === "browse-jobs" && <SeekerBrowseJobs />}
-          {section === "applications" && (applicationError ? <p role="alert" className={seekerPanel}>{applicationError}</p> : applicationsReady ? <ApplicationsTable applications={applications} /> : <p role="status" className={seekerPanel}>Loading applications…</p>)}
+          {section === "applications" && (applicationError ? <p role="alert" className={seekerPanel}>{applicationError}</p> : applicationsReady ? <ApplicationsTable applications={applications} /> : <ContentSkeleton label="Loading applications…" className={seekerPanel} />)}
           {section === "saved-jobs" && <SavedJobs snapshot={savedSnapshot} />}
-          {(section === "profile" || section === "cv") && (profileError ? <p role="alert" className={seekerPanel}>{profileError}</p> : !profileReady ? <p role="status" className={seekerPanel}>Loading profile…</p> : section === "profile"
+          {(section === "profile" || section === "cv") && (profileError ? <p role="alert" className={seekerPanel}>{profileError}</p> : !profileReady ? <ContentSkeleton label="Loading profile…" className={seekerPanel} /> : section === "profile"
             ? <PersonalProfileEditor profile={profile} accountName={accountName} email={email} update={(changes) => setProfile((current) => ({ ...current, ...changes }))} />
             : <SeekerCvEditor cvType={profile.cvType} update={(cvType) => setProfile((current) => ({ ...current, cvType }))} />)}
           {section === "profile" && (
@@ -311,7 +324,7 @@ export function SeekerWorkspace({ section, accountName, email, verified, emailEn
           {section === "notifications" && <section className={seekerPanel}>
             <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-extrabold">Application updates</h2>{unread > 0 && <button type="button" onClick={markRead} disabled={markingRead} className={textLink}>{markingRead ? "Marking…" : "Mark all as read"}</button>}</div>
             {profileError && <p role="alert" className="mt-3 text-sm text-red-700">{profileError}</p>}
-            {applicationError ? <p role="alert" className="mt-3 text-sm text-red-700">{applicationError}</p> : !applicationsReady ? <p role="status" className="mt-3 text-sm">Loading updates…</p> : notifications.length === 0 ? <p className="mt-3 text-sm text-slate-600">You’ll see an update when an admin reviews an application.</p> : (
+            {applicationError ? <p role="alert" className="mt-3 text-sm text-red-700">{applicationError}</p> : !applicationsReady ? <ContentSkeleton label="Loading updates…" className="mt-3 text-sm" /> : notifications.length === 0 ? <p className="mt-3 text-sm text-slate-600">You’ll see an update when an admin reviews an application.</p> : (
               <ul className="mt-4 space-y-3">{notifications.map((item) => <li key={item._id} className="rounded-xl border border-slate-200 p-4"><Link href={href("applications")} className="font-bold text-emerald-900 hover:underline">{item.jobTitle} · {statusLabels[item.status]}</Link><p className="mt-1 text-sm text-slate-600">{item.companyName} · {dateFormat.format(new Date(item.reviewedAt!))}</p></li>)}</ul>
             )}
           </section>}
