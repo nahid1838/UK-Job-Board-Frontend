@@ -115,6 +115,7 @@ export function AuthForm(props: AuthFormProps) {
             email,
             password,
             accountType: fields.get("role") === "employer" ? "employer" : "seeker",
+            callbackURL: `/login${returnQuery}`,
           })
         : await authClient.signIn.email({ email, password });
 
@@ -134,7 +135,7 @@ export function AuthForm(props: AuthFormProps) {
         const isSignedIn = Boolean(result.data?.token);
         toast.success("Account created", {
           id: "registration",
-          description: isSignedIn ? "You’re signed in. Welcome to UK Job Board!" : "You can now sign in to UK Job Board.",
+          description: isSignedIn ? "You’re signed in. Welcome to UK Job Board!" : "Check your email for a verification link before signing in.",
         });
         router.replace(isSignedIn ? authDestination : `/login${returnQuery}`);
         return;
@@ -216,6 +217,12 @@ export function AuthForm(props: AuthFormProps) {
           </div>
         </div>
 
+        {!isRegister && (
+          <div className="flex flex-wrap justify-between gap-2 text-sm font-semibold text-emerald-800">
+            <Link href="/forgot-password" className="hover:underline">Forgot password?</Link>
+            <Link href="/verify-email" className="hover:underline">Resend verification email</Link>
+          </div>
+        )}
         <Button type="submit" disabled={isBusy} className="min-h-11 w-full bg-[#007653] text-white hover:bg-[#005c41]">
           {isSubmitting
             ? (isRegister ? "Creating account…" : "Signing in…")

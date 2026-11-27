@@ -3,6 +3,7 @@ import { AdminCompanyQueue, CompanyApplicationPanel } from "./company-applicatio
 import { DashboardShell } from "./dashboard-shell";
 import { CategoryManager } from "./category-manager";
 import { JobApplicationsPanel } from "./job-applications-panel";
+import { JobPostingPanel } from "./job-posting-panel";
 import { dashboardPaths, getDashboardUser, type DashboardRole } from "@/lib/dashboard-access";
 import { dashboardHref, dashboardNavigation } from "@/lib/dashboard-navigation";
 import { BriefcaseBusiness, Building2, ClipboardList, Clock3, FileCheck2, Users } from "lucide-react";
@@ -91,6 +92,8 @@ export async function DashboardPage({ role: requiredRole, section }: { role: Das
           <AdminCompanyQueue />
         ) : role === "admin" && section === "categories" ? (
           <CategoryManager />
+        ) : role === "admin" && section === "jobs" ? (
+          <JobPostingPanel mode="list" admin />
         ) : section === "applications" || section === "received-applications" ? (
           <JobApplicationsPanel role={section === "received-applications" ? "employer" : role} />
         ) : role !== "admin" && ["company", "become-an-employer", "jobs", "post-a-job"].includes(section) ? (

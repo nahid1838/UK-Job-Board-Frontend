@@ -2,12 +2,28 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+.uk-flag {
+  display: inline-block;
+  width: 1.45em;
+  height: 0.9em;
+  flex-shrink: 0;
+  border-radius: 0.08em;
+  background:
+    linear-gradient(0deg, transparent 39%, #c8102e 39% 61%, transparent 61%),
+    linear-gradient(90deg, transparent 43%, #c8102e 43% 57%, transparent 57%),
+    linear-gradient(0deg, transparent 32%, #fff 32% 68%, transparent 68%),
+    linear-gradient(90deg, transparent 38%, #fff 38% 62%, transparent 62%),
+    linear-gradient(32deg, transparent 45%, #fff 45% 48%, #c8102e 48% 52%, #fff 52% 55%, transparent 55%),
+    linear-gradient(-32deg, transparent 45%, #fff 45% 48%, #c8102e 48% 52%, #fff 52% 55%, transparent 55%),
+    #012169;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans), Arial, sans-serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);

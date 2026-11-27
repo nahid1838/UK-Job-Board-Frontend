@@ -1,10 +1,12 @@
 import type { PublicJob } from "@/lib/public-jobs";
-import { BriefcaseBusiness, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import Link from "next/link";
+import { CompanyLogo } from "./company-logo";
+import { SaveJobButton } from "./save-job-button";
 
 const pounds = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 2 });
 
-function formatSalary(job: PublicJob) {
+export function formatSalary(job: PublicJob) {
   if (job.salaryMin === null && job.salaryMax === null) return "Salary not listed";
   const minimum = job.salaryMin === null ? "" : pounds.format(job.salaryMin);
   const maximum = job.salaryMax === null ? "" : pounds.format(job.salaryMax);
@@ -14,23 +16,22 @@ function formatSalary(job: PublicJob) {
 
 export function JobCard({ job, compact = false }: { job: PublicJob; compact?: boolean }) {
   return (
-    <article className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 text-[#10213b] shadow-sm hover:border-emerald-200 motion-safe:transition motion-safe:hover:-translate-y-0.5">
-      <div className="flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-800">
-          <BriefcaseBusiness aria-hidden="true" className="size-5" />
-        </span>
-        <div className="min-w-0">
-          <h3 className="font-bold [overflow-wrap:anywhere]">{job.title}</h3>
-          <p className="mt-0.5 text-sm text-slate-600 [overflow-wrap:anywhere]">{job.companyName} · {job.category}</p>
-        </div>
+    <article className="flex h-full min-w-0 flex-col rounded-xl border border-[#e9eef5] bg-white p-4 text-[#10213b] shadow-sm hover:border-emerald-200 motion-safe:transition motion-safe:hover:-translate-y-0.5">
+      <div className="flex items-center justify-between gap-2">
+        {job.isFeatured ? <span className="rounded-full bg-[#f83e4f] px-2 py-0.5 text-xs font-bold text-white">Hot</span> : <span />}
+        <SaveJobButton id={job._id} />
       </div>
-      <p className="mt-4 flex items-start gap-2 text-sm text-slate-700">
-        <MapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-emerald-800" />
-        <span className="min-w-0 [overflow-wrap:anywhere]">{job.location} · {job.jobType} · {job.workMode}</span>
+      <div className="mt-1 flex min-h-9 items-center">
+        <CompanyLogo name={job.companyName} src={job.companyLogo} />
+      </div>
+      <h3 className="mt-3 text-sm font-extrabold [overflow-wrap:anywhere] sm:text-base"><Link href={`/jobs/${job._id}`} className={`hover:text-emerald-800 hover:underline ${compact ? "line-clamp-2" : ""}`}>{job.title}</Link></h3>
+      <p className="mt-2 flex items-start gap-1.5 text-xs text-slate-600 sm:text-sm">
+        <MapPin aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+        <span className={`min-w-0 [overflow-wrap:anywhere] ${compact ? "line-clamp-1" : ""}`}>{job.location} · {job.jobType}{compact ? "" : ` · ${job.workMode}`}</span>
       </p>
-      <p className="mt-2 text-sm font-semibold text-emerald-800">{formatSalary(job)}</p>
+      <p className="mt-1.5 text-sm font-medium">{formatSalary(job)}</p>
       <div className="mt-auto pt-4">
-        <Link href={`/jobs/${job._id}/apply`} aria-label={`Apply for ${job.title}`} className="inline-flex min-h-10 items-center rounded-lg bg-[#007653] px-4 text-sm font-semibold text-white hover:bg-[#005c41] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Apply</Link>
+        <Link href={`/jobs/${job._id}/apply`} aria-label={`Apply for ${job.title}`} className="inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-linear-to-r from-[#007749] to-[#08874c] px-4 text-sm font-bold text-white hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Apply Now</Link>
       </div>
       {!compact && (
         <details className="mt-4 border-t border-slate-100 pt-3 text-sm">

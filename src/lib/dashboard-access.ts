@@ -16,6 +16,7 @@ export async function getDashboardUser(returnTo?: string) {
   if (!session) redirect(returnTo ? `/login?${new URLSearchParams({ next: returnTo })}` : "/login");
 
   const { user } = session;
+  if (user.active === false) redirect("/login");
   // Older accounts already have an account type from registration.
   const role = user.role === "admin" || user.role === "employer" || user.role === "seeker"
     ? user.role

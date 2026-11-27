@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 
 import {
-  ArrowUpRight,
+  House,
   BriefcaseBusiness,
   Menu,
   Search,
@@ -13,12 +13,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 
 const navigationLinks = [
+  { label: "Home", href: "/" },
   { label: "Jobs", href: "/jobs" },
-  { label: "Companies", href: "/companies" },
   { label: "Categories", href: "/categories" },
+  { label: "Companies", href: "/companies" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
@@ -26,7 +27,7 @@ const navigationLinks = [
 const focusStyle =
   "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700";
 
-export function Navbar() {
+function NavbarContent() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
@@ -96,7 +97,7 @@ export function Navbar() {
         }}
       >
         {/* Main Navbar */}
-        <div className="flex min-h-[76px] items-center justify-between gap-4 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+        <div className="flex min-h-16 items-center justify-between gap-4 lg:grid lg:grid-cols-[1fr_auto_1fr]">
 
           {/* Logo */}
           <Link
@@ -116,8 +117,8 @@ export function Navbar() {
               <span className="text-[19px] font-extrabold tracking-tight text-[#10213b] sm:text-xl">
                 UK Job<span className="text-[#007653]">Board</span>
               </span>
-              <span className="hidden text-[10px] font-medium tracking-[0.13em] text-slate-500 sm:block">
-                YOUR NEXT OPPORTUNITY
+              <span className="hidden text-[10px] font-medium tracking-normal text-slate-500 sm:block">
+                Find Your Next Opportunity
               </span>
             </span>
           </Link>
@@ -134,14 +135,15 @@ export function Navbar() {
                     aria-current={active ? "page" : undefined}
                     className={`relative flex min-h-11 items-center rounded-lg px-3 text-[13px] font-semibold transition-colors duration-200 xl:px-3.5 ${
                       active
-                        ? "bg-emerald-50 text-[#007653]"
+                        ? "text-[#007653]"
                         : "text-slate-600 hover:bg-slate-50 hover:text-[#007653]"
                     } ${focusStyle}`}
                   >
+                    {href === "/" && <House aria-hidden="true" className="mr-2 size-4 text-emerald-800" />}
                     {label}
 
                     {active && (
-                      <span className="absolute bottom-0 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-[#007653]" />
+                      <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-[#007653]" />
                     )}
                   </Link>
                 </li>
@@ -172,11 +174,7 @@ export function Navbar() {
                   href="/register"
                   className={`group inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#007653] px-5 text-sm font-semibold text-white shadow-md shadow-emerald-900/10 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#005c41] hover:shadow-lg hover:shadow-emerald-900/15 ${focusStyle}`}
                 >
-                  Get Started
-                  <ArrowUpRight
-                    aria-hidden="true"
-                    className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                  />
+                  Register
                 </Link>
               </>
             )}
@@ -245,6 +243,7 @@ export function Navbar() {
                           : "text-slate-600 hover:bg-slate-50 hover:text-[#007653]"
                       } ${focusStyle}`}
                     >
+                      {href === "/" && <House aria-hidden="true" className="mr-2 inline size-4 text-emerald-800" />}
                       {label}
 
                       {active && (
@@ -282,8 +281,7 @@ export function Navbar() {
                       onClick={closeMenu}
                       className={`flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#007653] text-sm font-semibold text-white transition-colors hover:bg-[#005c41] ${focusStyle}`}
                     >
-                      Get Started
-                      <ArrowUpRight aria-hidden="true" className="size-4" />
+                      Register
                     </Link>
                   </>
                 )}
@@ -294,5 +292,13 @@ export function Navbar() {
         {signOutError && <p role="alert" className="pb-3 text-sm text-red-700">{signOutError}</p>}
       </nav>
     </header>
+  );
+}
+
+export function Navbar() {
+  return (
+    <Suspense fallback={<div aria-hidden="true" className="min-h-16 border-b border-slate-100 bg-white" />}>
+      <NavbarContent />
+    </Suspense>
   );
 }

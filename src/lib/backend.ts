@@ -1,7 +1,10 @@
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 export function backendEndpoint(path: string) {
-  return new URL(path, backendUrl);
+  if (typeof window !== "undefined" && process.env.NODE_ENV === "production") {
+    return new URL(path.replace(/^\/api\//, "/board-api/"), window.location.origin);
+  }
+  return new URL(path, process.env.BACKEND_ORIGIN || backendUrl);
 }
 
 export class BackendRequestError extends Error {

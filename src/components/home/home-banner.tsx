@@ -1,85 +1,93 @@
-import { BriefcaseBusiness, Building2, MapPin, Search, Users } from "lucide-react";
+﻿import { BriefcaseBusiness, Flame, MapPin, Search } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { Suspense } from "react";
+import { getCategories } from "@/lib/categories";
+import { getJobResults } from "@/lib/public-jobs";
 import parliamentPhoto from "../../../public/images/london-parliament-panorama.png";
 
-// These values reproduce the showcase until the job board has real counts.
-const showcaseStats = [
-  { value: "10K+", label: "Active Jobs", Icon: BriefcaseBusiness },
-  { value: "2K+", label: "Companies", Icon: Building2 },
-  { value: "500K+", label: "Job Seekers", Icon: Users },
-];
+const popularSearches = ["Developer", "Designer", "Marketing", "Manager", "Remote"];
+const fieldStyle = "flex min-h-11 min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-3 text-[#13273d] focus-within:ring-2 focus-within:ring-emerald-700";
+
+async function Categories() {
+  let categories: Awaited<ReturnType<typeof getCategories>> = [];
+  try {
+    categories = await getCategories({ signal: AbortSignal.timeout(4000) });
+  } catch {
+    // Keyword and location search remain available.
+  }
+
+  return (
+    <select name="category" aria-label="Job category" className="min-h-10 w-full bg-transparent text-sm outline-none">
+      <option value="">All Categories</option>
+      {categories.map(({ _id, name }) => <option key={_id} value={_id}>{name}</option>)}
+    </select>
+  );
+}
+
+async function JobCount() {
+  try {
+    const { total } = await getJobResults(new URLSearchParams({ limit: "1" }));
+    return <strong className="block text-xl leading-tight sm:text-2xl">{total.toLocaleString("en-GB")}</strong>;
+  } catch {
+    return <Link href="/jobs" className="block text-sm font-semibold underline">Browse jobs</Link>;
+  }
+}
 
 export function HomeBanner() {
   return (
-    <section
-      aria-labelledby="home-banner-title"
-      className="relative isolate mx-auto max-w-7xl overflow-hidden bg-linear-to-br from-[#002b29] via-[#00474a] to-[#00765f] text-white sm:rounded-2xl"
-    >
-      <div className="relative z-10 px-5 pt-8 motion-safe:animate-in motion-safe:fade-in-75 motion-safe:slide-in-from-bottom-2 motion-safe:duration-500 sm:px-10 sm:pt-11 md:pt-12 lg:pt-14">
-        <p className="mb-4 hidden w-fit items-center gap-2 rounded-full bg-[#08634f] px-3 py-1.5 text-sm font-semibold sm:flex">
-          <span aria-hidden="true">🇬🇧</span> Find Your Dream Job in the UK
-        </p>
+    <section aria-labelledby="home-banner-title" className="relative isolate overflow-hidden bg-linear-to-br from-white via-[#f5f9fc] to-[#e2f3e9] text-[#10243a]">
+      <div className="pointer-events-none absolute -right-12 -bottom-24 h-72 w-3/5 -rotate-12 rounded-[50%] bg-[#b7e1cd]/55" aria-hidden="true" />
+      <div className="relative mx-auto grid max-w-7xl items-center px-5 sm:px-8 lg:min-h-[368px] lg:px-10">
+        <div className="relative z-20 max-w-[49rem] pt-8 pb-6 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500 lg:py-9">
+          <p className="inline-flex items-center gap-2 rounded-full bg-[#e6f3ec] px-3 py-1.5 text-xs font-bold text-[#084b38]"><span aria-hidden="true" className="uk-flag" /> United Kingdom’s Premier Job Board</p>
+          <h1 id="home-banner-title" className="mt-4 w-fit bg-linear-to-br from-[#0a1d32] via-[#084636] to-[#007754] bg-clip-text text-[clamp(2.45rem,5.25vw,4.35rem)] leading-[.99] font-extrabold tracking-tight text-transparent">
+            <span className="block sm:whitespace-nowrap">Your Next Career</span>{" "}
+            <span className="block">Starts Here</span>
+          </h1>
+          <p className="mt-4 max-w-[29rem] text-base leading-snug text-slate-700 sm:text-lg">Discover thousands of jobs across the UK. Search, apply and take the next step in your career journey.</p>
 
-        <h1 id="home-banner-title" className="text-[clamp(2rem,8vw,4.5rem)] leading-[1.02] font-extrabold tracking-tight sm:text-5xl lg:text-6xl xl:text-7xl">
-          <span className="block">Your Next</span>
-          <span className="block">Career Step</span>
-          <span className="block text-[#36ed9d]">Starts Here</span>
-        </h1>
+          <form action="/jobs" method="get" role="search" aria-label="Find UK jobs" className="mt-6 grid max-w-3xl gap-2 rounded-2xl border border-slate-100 bg-white p-2.5 shadow-lg shadow-slate-900/10 sm:grid-cols-2 lg:grid-cols-[1.18fr_1fr_.95fr_auto]">
+            <label className={fieldStyle}>
+              <Search aria-hidden="true" className="size-5 shrink-0" />
+              <span className="sr-only">Job title or keywords</span>
+              <input name="keyword" placeholder="Job title, keywords…" className="w-full min-w-0 bg-transparent text-sm outline-none" />
+            </label>
+            <label className={fieldStyle}>
+              <MapPin aria-hidden="true" className="size-5 shrink-0" />
+              <span className="sr-only">UK location</span>
+              <input name="location" placeholder="UK Location" className="w-full min-w-0 bg-transparent text-sm outline-none" />
+            </label>
+            <div className={fieldStyle}>
+              <Suspense fallback={<span className="text-sm">All Categories</span>}><Categories /></Suspense>
+            </div>
+            <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-linear-to-r from-[#006a49] to-[#008052] px-5 text-sm font-bold text-white hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800">
+              <Search aria-hidden="true" className="size-4" /> Search
+            </button>
+          </form>
 
-        <p className="mt-4 max-w-xs text-base leading-snug text-white sm:text-lg lg:max-w-sm lg:text-xl">
-          Explore thousands of jobs across the UK from trusted companies.
-        </p>
-
-        <form
-          action="/jobs"
-          method="get"
-          role="search"
-          aria-label="Find UK jobs"
-          className="mt-6 grid grid-cols-[minmax(0,1fr)_auto] gap-1 rounded-xl bg-white p-1.5 text-[#10213b] shadow-lg shadow-black/20 sm:flex sm:max-w-2xl sm:items-center lg:max-w-[73%] xl:max-w-[74%]"
-        >
-          <label className="flex min-w-0 items-center gap-2 rounded-lg bg-slate-50 px-3 focus-within:ring-2 focus-within:ring-inset focus-within:ring-emerald-700 sm:flex-[3]">
-            <Search aria-hidden="true" className="size-5 shrink-0" />
-            <span className="sr-only">Job title or keyword</span>
-            <input name="keyword" placeholder="Job title, keywords…" className="min-h-11 w-full min-w-0 bg-transparent text-base outline-none placeholder:text-slate-600" />
-          </label>
-
-          <label className="col-start-1 row-start-2 flex min-w-0 items-center gap-2 rounded-lg bg-slate-50 px-3 focus-within:ring-2 focus-within:ring-inset focus-within:ring-emerald-700 sm:flex-[2]">
-            <MapPin aria-hidden="true" className="size-5 shrink-0" />
-            <span className="sr-only">UK location</span>
-            <input name="location" placeholder="UK Location" className="min-h-11 w-full min-w-0 bg-transparent text-base outline-none placeholder:text-slate-600" />
-          </label>
-
-          <button type="submit" aria-label="Search jobs" className="col-start-2 row-span-2 row-start-1 inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg bg-[#007653] px-3 font-semibold text-white hover:bg-[#005c41] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 motion-safe:transition-colors sm:px-8">
-            <Search aria-hidden="true" className="size-5 sm:hidden" />
-            <span className="hidden sm:inline">Search</span>
-          </button>
-        </form>
-      </div>
-
-      <div aria-hidden="true" className="relative mt-4 h-48 overflow-hidden bg-[#159b87] sm:h-64 md:absolute md:inset-y-0 md:right-0 md:mt-0 md:h-auto md:w-[49%] md:[clip-path:ellipse(100%_56%_at_100%_48%)]">
-        <div className="absolute inset-0 [clip-path:ellipse(94%_91%_at_100%_91%)] md:[clip-path:ellipse(92%_54%_at_100%_47%)]">
-          <Image
-            src={parliamentPhoto}
-            alt=""
-            fill
-            preload
-            sizes="(max-width: 767px) 100vw, (max-width: 1023px) 580px, 700px"
-            className="object-cover object-[65%_30%] md:object-[65%_center]"
-          />
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <span className="mr-1 inline-flex items-center gap-1.5 font-bold"><Flame aria-hidden="true" className="size-4 text-orange-600" /> Popular Searches:</span>
+            {popularSearches.map((term) => (
+              <Link key={term} href={term === "Remote" ? "/jobs?workMode=Remote" : `/jobs?keyword=${term}`} className="rounded-full bg-[#e8edf5] px-3 py-1.5 font-medium hover:bg-emerald-100">{term}</Link>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <dl className="relative z-10 grid grid-cols-3 divide-x divide-emerald-200/25 bg-[#003530] px-2 py-4 sm:px-8 md:my-6 md:w-[68%] md:bg-transparent md:py-1 lg:my-9">
-        {showcaseStats.map(({ value, label, Icon }) => (
-          <div key={label} className="flex items-center justify-center gap-1.5 px-1 sm:gap-3 sm:px-3">
-            <Icon aria-hidden="true" className="size-4 shrink-0 text-[#36ed9d] sm:size-7 lg:size-9" />
-            <div className="flex flex-col-reverse">
-              <dt className="text-[11px] leading-tight sm:text-sm">{label}</dt>
-              <dd className="text-lg leading-tight font-extrabold sm:text-2xl lg:text-3xl">{value}</dd>
+        <div className="relative mb-5 h-52 sm:h-64 lg:absolute lg:inset-y-0 lg:right-0 lg:mb-0 lg:h-auto lg:w-[46%]">
+          <div aria-hidden="true" className="absolute inset-0 overflow-hidden rounded-[46%_42%_45%_46%/43%_37%_25%_43%] bg-emerald-100 lg:-right-8">
+            <Image src={parliamentPhoto} alt="" fill preload sizes="(max-width: 1023px) 100vw, 48vw" className="object-cover object-[63%_42%]" />
+            <div className="absolute -right-44 top-5 size-72 rounded-full border-[12px] border-[#8bd4af]/75 bg-[#087352]/90 ring-8 ring-white/70 lg:-right-56 lg:size-88" />
+          </div>
+          <div className="absolute right-4 bottom-4 z-10 flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-lg lg:top-[35%] lg:bottom-auto lg:right-6">
+            <span className="grid size-10 place-items-center rounded-full bg-emerald-50 text-emerald-800"><BriefcaseBusiness aria-hidden="true" className="size-5" /></span>
+            <div>
+              <p className="text-xs font-semibold">Jobs in the UK</p>
+              <Suspense fallback={<span className="text-sm">Loading…</span>}><JobCount /></Suspense>
             </div>
           </div>
-        ))}
-      </dl>
+        </div>
+      </div>
     </section>
   );
 }

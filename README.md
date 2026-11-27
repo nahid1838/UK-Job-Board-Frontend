@@ -2,6 +2,16 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Homepage content
+
+The homepage loads jobs, categories, and hiring companies from the Express API. An approved company owner can upload a PNG or JPEG logo (up to 2 MB) from the company application or profile page. The logo then appears on public job cards and company profiles.
+
+Optional frontend environment variables:
+
+- `SITE_TESTIMONIALS` is a JSON array containing up to three approved testimonials. Each entry has `name`, `role`, and `quote` strings.
+- `SITE_CONTACT_EMAIL` is the public support email shown on the Contact page.
+- `JOB_ALERTS_SIGNUP_URL` is the HTTPS signup page of your job-alerts provider. The footer links to Contact until this is configured.
+
 First, run the development server:
 
 ```bash

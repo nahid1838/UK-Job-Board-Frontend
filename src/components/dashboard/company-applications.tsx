@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { backendErrorMessage, backendRequest } from "@/lib/backend";
 import { JobPostingPanel } from "./job-posting-panel";
+import { CompanyLogoForm } from "./company-logo-form";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -27,6 +28,7 @@ type CompanyApplication = {
   status: "pending" | "approved" | "rejected";
   details: Record<(typeof fields)[number]["name"], string>;
   rejectionReason?: string;
+  logoUrl?: string;
 };
 
 const fieldStyle = "mt-1.5 w-full min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal focus-visible:outline-2 focus-visible:outline-emerald-700";
@@ -97,7 +99,8 @@ export function CompanyApplicationPanel({ title, companyHref, jobsHref, mode = "
         {application?.status === "pending" && <p className="mt-3 text-sm text-slate-600">Your application for {application.details.name} is awaiting admin review.</p>}
         {application?.status === "approved" && (
           <>
-            <p className="mt-3 text-sm text-emerald-800">{application.details.name} has been approved.</p>
+              <p className="mt-3 text-sm text-emerald-800">{application.details.name} has been approved.</p>
+              {mode === "application" && <CompanyLogoForm name={application.details.name} currentLogo={application.logoUrl} />}
             {mode === "application" || mode === "overview" ? (
               <Link href={jobsHref} className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-[#007653] px-4 text-sm font-semibold text-white hover:bg-[#005c41]">Post a job</Link>
             ) : <JobPostingPanel mode={mode} />}
